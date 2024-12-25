@@ -1,0 +1,1253 @@
+.top_content{
+    margin-right:20px;
+    margin-left: 20px;
+}
+.homepage_first {
+    height:auto;
+    padding-bottom: 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content:flex-start;
+    text-align:center;
+    align-items: center;
+    position: relative; 
+    overflow: hidden; 
+}
+
+.title_homepage {
+    margin-top: 3rem;
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5); 
+}
+
+.image1_homepage {
+    width: 45%;
+    height: auto;
+    border-radius: 10px;
+    margin-top: 0rem;
+    display: flex;
+}
+
+.image1 {
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 10px;
+    transform: scale(1.1);
+    transition: transform .3s ease-in-out;
+}
+
+.image1:hover {
+    transform: scale(1.3);
+}
+
+.title {
+    font-size: 3.6rem;
+    font-family:Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    line-height: 1.2;
+    color: #474545;
+    font-weight: 200;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4);
+    transform: translateY(-20px);
+    animation: navAppear 0.8s ease-out forwards;
+}
+
+
+
+
+.grow-section {
+    height: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+
+.icon-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    gap: 20px;
+    flex-wrap: wrap;
+    transform: translateY(-20px);
+    animation: navAppear 0.8s ease-out forwards;
+}
+
+@keyframes navAppear {
+    0% {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.icon-box {
+    max-width: 150px;
+    text-align: center;
+}
+
+.icon-box i {
+    font-size: 2rem;
+    margin-bottom: 15px;
+}
+
+.icon-box h3 {
+    font-size: 18px;
+    margin: 10px 0;
+}
+
+.icon-box p {
+    font-size: 14px;
+    line-height: 1.4;
+    color: #ccc;
+}
+@media(max-width:768px){
+    .title{
+        font-size: 2.8rem;
+    }
+}
+
+
+/*-------------------------On scroll ----------------------*/
+
+.middle_content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 600vh;
+    background: transparent;
+    overflow: hidden; 
+}
+
+#arrow {
+    position: absolute;
+    top: -500px;
+    left: -100px;
+    transform-origin: center;
+    transform: rotate(40deg);
+}
+
+#arrow img {
+    width: 10vw;
+    max-width: 150px; 
+    height: auto; 
+}
+
+svg {
+    width: 100%;
+    height: auto;
+    z-index: 0;
+}
+
+#path {
+    stroke-width: 20;
+    fill: none; 
+    stroke-dasharray: 3000;
+    stroke-dashoffset: 3000; 
+}
+
+/*--------------------Second div-----------------------*/
+.goal_content {
+    position: relative; 
+    height: 600vh;
+    margin-bottom: 60px; 
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: center;
+    text-align: center;
+    overflow: hidden; 
+}
+@media(min-height:800px){
+    .goal_content{
+        height: auto;
+    }
+}
+
+.header_middle {
+    position: absolute;
+    font-size: 4rem;
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    line-height: 1.2;
+    color: #474545;
+    font-weight: 200;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4); 
+    z-index: 10000;
+    transition:  text-shadow 0.3s ease-in-out; 
+}
+
+.header_middle:hover {
+    color: #000000c7;  
+    text-shadow: 6px 6px 12px rgba(0, 0, 0, 0.6); 
+}
+
+
+.content_middle {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem; 
+    width: 100%; 
+}
+
+.intrests{
+    font-size: 2rem;
+}
+.goal {
+    font-family:Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    background-color: transparent; 
+    border-radius: 12px; 
+    padding: 1rem;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    text-align: start;
+    max-height: 200px;
+    min-height: 150px;
+    height: auto; 
+    width: 50%;
+    max-width: 800px; 
+    opacity: 1; 
+    transition: transform 0.5s ease-in-out, box-shadow 0.5s ease-in-out; 
+    z-index: 1000;
+    backdrop-filter: blur(15px);
+    transform: perspective(1000px) rotateX(0deg);
+    overflow: hidden;
+}
+
+.goal:hover {
+    border: 3px solid #474545;
+    transform: perspective(1000px) rotateX(50deg) rotateY(30deg) translateZ(100px); 
+    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.5), 0 5px 10px rgba(0, 0, 0, 0.3); 
+}
+
+.goal h3 {
+    margin: 0.8rem 0;
+    font-size: 2rem; 
+    font-weight: 700;
+    margin-right: 30px;
+    color: #474545; 
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); 
+}
+
+.goal p {
+    margin: 0;
+    font-size: 1.1rem;
+    color: rgb(146, 146, 146)545;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1); 
+}
+.plus-to-dot {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    margin: 50px;
+}
+
+.plus-to-dot::before, .plus-to-dot::after {
+    content: '';
+    position: absolute;
+    background-color: #000000;
+    border-radius: 50px; 
+    background: radial-gradient(circle, #000000, transparent);
+}
+
+.plus-to-dot::before {
+    width: 100%;
+    height: 10px;
+    top: 50%;
+    left: 0;
+    transform-origin: center;
+    transform: translateY(-50%);
+    animation: cross-to-dot-horizontal 4s infinite ease-in-out;
+}
+
+.plus-to-dot::after {
+    width: 10px;
+    height: 100%;
+    left: 50%;
+    top: 0;
+    transform-origin: center;
+    transform: translateX(-50%);
+    animation: cross-to-dot-vertical 4s infinite ease-in-out;
+}
+
+@keyframes cross-to-dot-horizontal {
+    0% {
+        transform: translateY(-50%); 
+    }
+    50% {
+        transform: translateY(-50%) scaleX(0); 
+    }
+    100% {
+        transform: translateY(-50%) scaleX(1); 
+    }
+}
+
+@keyframes cross-to-dot-vertical {
+    0% {
+        transform: translateX(-50%);
+    }
+    50% {
+        transform: translateX(-50%) scaleY(0);
+    }
+    100% {
+        transform: translateX(-50%) scaleY(1); 
+    }
+}
+
+
+#plusToDot1::before {
+    animation: cross-to-dot-horizontal 13s infinite ease-in-out;
+}
+#plusToDot1::after {
+    animation: cross-to-dot-vertical 13s infinite ease-in-out;
+}
+
+#plusToDot2::before {
+    animation: cross-to-dot-horizontal 7s infinite ease-in-out;
+}
+#plusToDot2::after {
+    animation: cross-to-dot-vertical 7s infinite ease-in-out;
+}
+
+#plusToDot3::before {
+    animation: cross-to-dot-horizontal 11s infinite ease-in-out;
+}
+#plusToDot3::after {
+    animation: cross-to-dot-vertical 11s infinite ease-in-out;
+}
+
+ 
+.goal_content_mobile{
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .goal {
+        padding: 1.5rem; 
+    }
+}
+
+@media (max-width: 768px) {
+
+    .goal {
+        padding: 2rem;
+        flex-direction: column;
+    }
+    .content_middle {
+        flex-direction: column;
+        max-width: 600px;
+    }
+
+    .goal h3 {
+        font-size: 1.4rem; 
+    }
+
+    .goal p {
+        font-size: 0.8rem; 
+    }
+    .plus-to-dot{
+        width: 65px;
+        height: 65px;
+    }
+}
+@media (max-width: 650px) {
+    .plus-to-dot{
+        width: 100px;
+        height: 100px;
+    }
+}
+@media  (max-width:349px){
+    .header_middle {
+        font-size: 0.8rem;
+    }
+    .title{
+        font-size: 1.8rem;
+    }
+}
+@media (min-width: 349px) and (max-width:449px){
+    .header_middle {
+        font-size: 1.2rem;
+    }
+    .title{
+        font-size: 2.2rem;
+    }
+}
+@media (min-width: 449px) and (max-width:549px){
+    .header_middle {
+        font-size: 1.5rem;
+    }
+    .title{
+        font-size: 2.5rem;
+    }
+}
+@media (min-width: 550px) and (max-width:779px){
+    .header_middle {
+        font-size: 1.9rem;
+    }
+    .title{
+        font-size: 2.9rem;
+    }
+}
+@media (min-width: 780px) and (max-width:899px){
+    .header_middle {
+        font-size: 2rem;
+    }
+}
+
+@media(min-width:900px)and (max-width: 1200px) {
+    .header_middle {
+        font-size: 3rem;
+    }
+}
+
+@media (min-width: 1600px) {
+    .header_middle {
+        font-size: 5rem;
+    }
+}
+
+@media (max-width: 550px) {
+    .goal_content {
+        display: none; 
+    }
+    .goal_content_mobile {
+        height: 600px;
+        margin-bottom: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: left;
+        align-items: center;
+        text-align: center;
+        margin-top: 5rem;
+    }
+    .header_middle_mobile{
+        font-size: 3rem;
+        font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+        line-height: 1.2;
+        color: #141414;
+        font-weight: 200;
+        margin-bottom: 40px;
+        text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4); 
+        z-index: 10000;
+    }
+    .content_middle_mobile{
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+    }
+    .goal_mobile {
+        font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+        background-color: rgba(255, 255, 255, 0.9); 
+        border-radius: 12px;
+        padding: 1.2rem;
+        margin-top: 10px;
+        /* border: 3px solid #797676;  */
+        width: 90%; 
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); 
+        backdrop-filter: blur(8px); 
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        text-align: center;
+    }
+
+    .goal_mobile:hover {
+        transform: scale(1.02); 
+        box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2), 0 5px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .goal_mobile h3 {
+        margin: 0.5rem 0;
+        font-size: 1.6rem; 
+        font-weight: 700;
+        color: #333; 
+        text-shadow: none; 
+    }
+
+    .goal_mobile p {
+        margin: 0.5rem 0;
+        font-size: 1rem;
+        color: #555; 
+        line-height: 1.5; 
+    }
+}
+
+@media (max-width: 377px) {
+    .goal_mobile h3 {
+        font-size: 1.3rem; 
+    }
+    .goal_mobile p {
+        font-size: 0.7rem;
+    }
+    .header_middle_mobile{
+        font-size: 2.5rem;
+    }
+}
+
+
+/*-------------------------Q and A----------------------*/
+/* Overview Section Styles */
+
+.overview,.overview_mobile {
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    background-color: transparent;  
+    border-radius: 12px;
+    padding: 2rem; 
+    width: 80%; 
+    text-align: center; 
+    z-index: 10000;
+    backdrop-filter: blur(15px);
+    transition: transform 0.5s ease-in-out, box-shadow 0.5s ease-in-out; 
+}
+
+.overview:hover,.overview_mobile:hover {
+    transform: scale(1.02); 
+    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.5), 0 5px 10px rgba(0, 0, 0, 0.3);
+}
+
+.overview h2,.overview_mobile h2 {
+    font-size: 2.5rem; 
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #474545;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4); 
+    z-index: 10000;
+    transition:text-shadow 0.3s ease-in-out; 
+}
+.overview h2:hover,.overview_mobile h2:hover{
+    text-shadow: 3px 5px 6px rgba(0, 0, 0, 0.4); 
+}
+
+.overview p,.overview_mobile p {
+    font-size: 1.2rem; 
+    color: #2b2a2a;
+    line-height: 1.6; 
+    margin: 0 auto; 
+    width: 90%; 
+}
+.overview_mobile{
+    display: none;
+    height: 30vh;
+}
+
+@media (max-width: 550px) {
+    .overview {
+        width: 95%; 
+        padding: 1.5rem;
+    }
+    .overview_mobile{
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+        align-items: center;
+        width:95%;
+    }
+    .why{
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+        align-items: center;
+        width: 100%;
+    }
+
+    .overview h2 ,.overview_mobile h2{
+        font-size: 2rem;
+    }
+
+    .overview p,.overview_mobile p {
+        font-size: 1rem;
+    }
+
+}
+
+
+.cta {
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    background-color: #f5f5f5; 
+    border: 3px solid #474545; 
+    border-radius: 12px; 
+    padding: 2rem;
+    text-align: center; 
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3), 0 4px 6px rgba(0, 0, 0, 0.2); 
+    width: 80%; 
+    margin: 2rem auto; 
+    background-color: transparent; 
+    backdrop-filter: blur(5px);
+    z-index: 10000;
+    transition: transform 0.5s ease-in-out, box-shadow 0.5s ease-in-out; 
+}
+
+.cta:hover {
+    transform: scale(1.02); 
+    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.5), 0 5px 10px rgba(0, 0, 0, 0.3); 
+}
+
+.cta h2 {
+    font-size: 2.5rem; 
+    font-weight: 700;
+    color: #474545; 
+    margin-bottom: 10px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); 
+}
+
+.cta p {
+    font-size: 1.2rem; 
+    color: #2b2a2a;
+    line-height: 1.6; 
+    margin: 0 auto; 
+    width: 90%; 
+}
+
+.cta a {
+    display: inline-block; 
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #ffffff; 
+    background-color: #474545; 
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px; 
+    margin-top: 10px;
+    text-decoration: none;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3); 
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease; 
+}
+
+.cta a:hover {
+    background-color: #666666; 
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4); 
+    transform: translateY(-3px); 
+}
+
+@media (max-width: 768px) {
+    .cta {
+        width: 95%; 
+        padding: 1.5rem;
+    }
+
+    .cta h2 {
+        font-size: 2rem; 
+    }
+
+    .cta p {
+        font-size: 1rem; 
+    }
+
+    .cta a {
+        font-size: 1rem;
+        padding: 0.5rem 1rem; 
+    }
+}
+
+.how-it-works {
+    z-index: 10000;
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    background-color: transparent;
+    backdrop-filter: blur(35px); 
+    padding: 3rem 1.5rem; 
+    text-align: center; 
+    border-top: 2px solid #dddddd; 
+    border-bottom: 2px solid #dddddd; 
+}
+
+.how-it-works h2 {
+    font-size: 2.5rem; 
+    color: #474545; 
+    margin-bottom: 2rem;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); 
+}
+
+.steps-container {
+    display: flex;
+    justify-content: center;
+    gap: 2rem; 
+    flex-wrap: wrap; 
+}
+
+.step {
+    flex: 1 1 30%; 
+    background-color: #f5f5f5; 
+    padding: 2rem;
+    border-radius: 12px; 
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2); 
+    transition: transform 0.3s ease, box-shadow 0.3s ease; 
+}
+
+.step:hover {
+    transform: translateY(-5px); 
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3); 
+}
+
+.step-number {
+    width: 50px;
+    height: 50px;
+    margin: 0 auto 1rem;
+    background-color: #474545; 
+    color: #ffffff; 
+    font-size: 1.5rem;
+    font-weight: bold;
+    border-radius: 50%; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.step h3 {
+    font-size: 1.5rem;
+    color: #474545;
+    margin-bottom: 1rem;
+}
+
+.step p {
+    font-size: 1rem;
+    color: #646464;
+    line-height: 1.5;
+}
+.cta_mobile{
+    display: none;
+}
+.how-it-works_mobile{
+    display: none;
+}
+@media (max-width: 550px) {
+    /* CTA Section for Mobile */
+    .cta_mobile {
+        font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+        padding: 1.5rem 1rem;
+        text-align: center;
+        margin: 1rem 0;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .cta_mobile h2 {
+        font-size: 1.8rem;
+        color: #474545;
+        margin-bottom: 0.5rem;
+    }
+
+    .cta_mobile p {
+        font-size: 1rem;
+        color: #646464;
+        margin-bottom: 1rem;
+    }
+
+    .cta_button_mobile {
+        font-size: 1rem;
+        color: #ffffff;
+        background-color: #474545;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-block;
+        transition: background-color 0.3s ease;
+    }
+
+    .cta_button_mobile:hover {
+        background-color: #333333;
+    }
+
+    /* How It Works for Mobile */
+    .how-it-works_mobile {
+        font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+        background-color: transparent;
+        padding: 2rem 1rem;
+        margin-top: 1rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+    }
+
+    .how-it-works_mobile h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: #474545;
+        padding-bottom: 30px;
+        text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4);
+    }
+
+    .steps-container_mobile {
+        display: flex;
+        flex-direction: column; /* Stacks steps vertically */
+        gap: 1.5rem;
+        align-items: center;
+    }
+
+    .step_mobile {
+        background-color: #ffffff;
+        padding: 1rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+        transition: transform .3s ease-in-out, box-shadow .3s ease-in-out;
+    }
+
+    .step-number_mobile {
+        width: 40px;
+        height: 40px;
+        background-color: #474545;
+        color: #ffffff;
+        font-size: 1.2rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 0.5rem;
+    }
+
+    .step_mobile h3 {
+        font-size: 1.2rem;
+        color: #474545;
+        margin-bottom: 0.5rem;
+    }
+
+    .step_mobile p {
+        font-size: 0.9rem;
+        color: #646464;
+        line-height: 1.4;
+    }
+}
+
+
+.journey-of-creation {
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    background-color: transparent;  
+    border-radius: 12px;
+    padding: 2rem; 
+    text-align: center; 
+    z-index: 10000;
+    backdrop-filter: blur(15px);
+    transition: transform 0.5s ease-in-out, box-shadow 0.5s ease-in-out; 
+}
+
+.journey-of-creation:hover {
+    transform: scale(1.02); 
+    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2), 0 5px 10px rgba(0, 0, 0, 0.3);
+}
+
+.journey-of-creation h2 {
+    font-size: 2.5rem; 
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #474545;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4); 
+    z-index: 10000;
+    transition: text-shadow 0.3s ease-in-out; 
+}
+.journey-of-creation p {
+    font-size: 1.2rem; 
+    color: #2b2a2a;
+    line-height: 1.6; 
+    margin: 0 ; 
+    margin-bottom: 10px;
+    width: 90%; 
+}
+
+.timeline-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    align-items: center;
+}
+
+.timeline-item {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 2rem;
+    width: 80%;
+    text-align: center;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.timeline-item:hover {
+    transform: scale(1.05);
+    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.3);
+}
+
+.timeline-date {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.timeline-content h3 {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #474545;
+    margin-bottom: 1rem;
+}
+
+.timeline-content p {
+    font-size: 1.1rem;
+    color: #555;
+    line-height: 1.6;
+}
+
+@media (max-width: 550px) {
+    .timeline-item {
+        width: 95%;
+    }
+
+    .journey-of-creation h2 {
+        font-size: 2rem;
+    }
+
+    .journey-of-creation p, .timeline-content p {
+        font-size: 1rem;
+    }
+}
+
+@media (min-width: 768px) {
+    .timeline-container {
+        flex-direction: row;
+        justify-content: space-evenly;
+    }
+
+    .timeline-item {
+        width: 30%;
+    }
+}
+
+.how-it-works{
+    margin-top: 370px;
+}
+@media (max-width: 1024px) {
+    .how-it-works {
+        margin-top: 28%; 
+    }
+}
+
+
+@media (max-width: 768px) {
+    .how-it-works {
+        margin-top: 30%; 
+    }
+}
+
+.journey-of-creation {
+    margin-top: 90%; 
+}
+
+@media (max-width: 1200px) {
+    .journey-of-creation {
+        margin-top: 100%; 
+    }
+}
+@media (max-width: 1024px) {
+    .journey-of-creation {
+        margin-top: 130%; 
+    }
+}
+
+@media (max-width: 769px) {
+    .journey-of-creation {
+        margin-top: 280%; 
+    }
+}
+
+.overview {
+    margin-top: 20%; 
+}
+
+@media (max-width: 1024px) {
+    .overview {
+        margin-top: 10%; 
+    }
+}
+
+
+@media (max-width: 768px) {
+    .overview {
+        margin-top: 30%; 
+    }
+}
+
+.did-you-know {
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    background-color: transparent; /* Subtle background for focus */
+    border: 2px solid #474545; 
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 2rem auto;
+    width: 60%;
+    z-index: 10000;
+    margin-left:10%;
+    text-align: left;
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.did-you-know:hover {
+    transform: scale(1.02); /* Slight hover effect */
+    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.4);
+}
+
+.did-you-know h2 { 
+    margin-left:40px;
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    color: #474545;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.did-you-know p {
+    font-size: 1.2rem;
+    color: #2b2a2a;
+    line-height: 1.6;
+    margin: 0 auto;
+    max-width: 90%;
+}
+
+.did-you-know {
+    margin-top: 17%;
+}
+@media (max-width: 1024px) {
+    .did-you-know {
+        width: 90%; 
+        margin-left: 0px;
+        margin: 0px;
+        margin-top: 20%;
+    }
+}
+
+
+.mobile-journey-of-creation {
+    display:none;
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    background-color: transparent;  
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center; 
+    z-index: 10000;
+    backdrop-filter: blur(15px);
+    transition: transform 0.5s ease-in-out, box-shadow 0.5s ease-in-out; 
+}
+@media (max-width: 550px) {
+    .mobile-journey-of-creation{
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin-top: 100px;
+        margin-bottom: 20px;
+    }
+}
+.mobile-journey-of-creation-div{
+    width: 90%;
+    /* padding: 10px;
+    border-radius: 30px;
+    padding-top: 50px;
+    padding-bottom: 50px; */
+}
+
+.mobile-journey-of-creation-div h2 {
+    font-size: 2rem; 
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #474545;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4); 
+    transition: text-shadow 0.3s ease-in-out; 
+}
+
+.mobile-journey-of-creation-div p {
+    font-size: 1rem; 
+    color: #2b2a2a;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    width: 100%; 
+}
+
+.mobile-timeline-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.mobile-timeline-item {
+    width: 100%; 
+    max-width: 600px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transition: text-shadow .3s ease-in-out,transform .3s ease-in-out; 
+}
+.mobile-timeline-item:hover {
+    transform: scale(1.02); 
+    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2), 0 5px 10px rgba(0, 0, 0, 0.3);
+}
+.mobile-timeline-date {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.mobile-timeline-content h3 {
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+    color: #555;
+}
+
+.mobile-timeline-content p {
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #444;
+}
+.step_mobile:hover{
+    transform: scale(1.02); 
+    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2), 0 5px 10px rgba(0, 0, 0, 0.3);
+}
+
+
+
+.faq-container {
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    background-color: transparent;
+    border-radius: 12px;
+    padding: 2rem;
+    padding-top: 0px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    backdrop-filter: blur(15px);
+    width: 90%; /* Allow the FAQ container to be responsive */
+    max-width: 1200px; 
+    margin: 0 auto;
+}
+
+.faq-container h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #474545;
+    padding-bottom: 30px;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4);
+}
+
+.faq-item {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 2rem;
+    width: 100%; /* Ensure it fills the container on all screen sizes */
+    text-align: left;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    margin-bottom: 1rem;
+}
+
+.faq-question {
+    background-color: transparent;
+    padding: 10px 15px;
+    width: 100%;
+    text-align: left;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+}
+
+.faq-question:after {
+    content: '+'; 
+    position: absolute;
+    right: 15px;
+    font-weight: bold;
+    color: #333;
+    transition: transform 0.3s ease;
+}
+
+.faq-question.active:after {
+    content: '-';
+}
+
+.faq-answer {
+    opacity: 0;
+    height: 0; 
+    padding: 0 15px;
+    border-top: 1px solid #ccc;
+    background-color: #fff;
+    font-size: 1rem;
+    color: #555;
+    line-height: 1.6;
+    display: block; 
+    overflow: hidden; 
+    transition: opacity 0.4s ease, height 0.4s ease, transform 0.4s ease, padding 0.4s ease; 
+}
+
+.faq-answer.open {
+    opacity: 1;
+    height: auto; 
+    transform: translateY(0); 
+    padding-top: 15px;
+    padding-bottom: 15px;
+}
+
+.faq-answer p {
+    margin: 0;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .faq-container {
+        padding: 1rem;
+    }
+
+    .faq-item {
+        padding: 1.5rem;
+    }
+
+    .faq-container h2 {
+        font-size: 2rem; /* Smaller title on mobile */
+        padding-bottom: 20px;
+    }
+
+    .faq-question {
+        font-size: 1rem; /* Smaller font size for mobile screens */
+    }
+}
+
+@media (max-width: 480px) {
+    .faq-container h2 {
+        font-size: 1.8rem; /* Title size adjusted even more for smaller screens */
+    }
+
+    .faq-question {
+        font-size: 0.9rem; /* Further decrease font size for mobile screens */
+        padding: 8px 12px;  /* Reduced padding for better fitting on small screens */
+    }
+
+    .faq-answer {
+        padding: 0 10px;  /* Smaller padding to accommodate the smaller screen width */
+    }
+}
+
+
+
+
