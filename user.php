@@ -53,9 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $visibility = 1;
         $like =0;
 
-        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-            $fileTmpPath = $_FILES['image']['tmp_name'];
-            $fileName = $_FILES['image']['name'];
+        if (isset($_FILES['movie']) && $_FILES['movie']['error'] === UPLOAD_ERR_OK) {
+            $fileTmpPath = $_FILES['movie']['tmp_name'];
+            $fileName = $_FILES['movie']['name'];
             $uploadFileDir = 'uploads/movies/';
             $dest_path = $uploadFileDir . basename($fileName);
 
@@ -82,9 +82,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $visibility = 1;
         $like = 0;
 
-        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-            $fileTmpPath = $_FILES['image']['tmp_name'];
-            $fileName = $_FILES['image']['name'];
+        if (isset($_FILES['book']) && $_FILES['book']['error'] === UPLOAD_ERR_OK) {
+            $fileTmpPath = $_FILES['book']['tmp_name'];
+            $fileName = $_FILES['book']['name'];
             $uploadFileDir = 'uploads/books/';
             $dest_path = $uploadFileDir . basename($fileName);
 
@@ -121,9 +121,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $visibility = 1;
         $like = 0;
 
-        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-            $fileTmpPath = $_FILES['image']['tmp_name'];
-            $fileName = $_FILES['image']['name'];
+        if (isset($_FILES['recipe']) && $_FILES['recipe']['error'] === UPLOAD_ERR_OK) {
+            $fileTmpPath = $_FILES['recipe']['tmp_name'];
+            $fileName = $_FILES['recipe']['name'];
             $uploadFileDir = 'uploads/recipes/';
             $dest_path = $uploadFileDir . basename($fileName);
 
@@ -210,7 +210,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
         echo json_encode(['success' => true]);
         exit;
+    }elseif ($_POST['action'] === 'delete_user') {
+        $user_id = intval($_POST['user_id']);
+        $conn->begin_transaction();
+    
+        try {
+            $stmt1 = $conn->prepare("DELETE FROM reviews WHERE user_id = ?");
+            $stmt1->bind_param("i", $user_id);
+            $stmt1->execute();
+            $stmt2 = $conn->prepare("DELETE FROM movies WHERE user_id = ?");
+            $stmt2->bind_param("i", $user_id);
+            $stmt2->execute();
+            $stmt3 = $conn->prepare("DELETE FROM books WHERE user_id = ?");
+            $stmt3->bind_param("i", $user_id);
+            $stmt3->execute();
+
+            $stmt4 = $conn->prepare("DELETE FROM goals WHERE user_id = ?");
+            $stmt4->bind_param("i", $user_id);
+            $stmt4->execute();
+
+            $stmt5 = $conn->prepare("DELETE FROM likes WHERE user_id = ?");
+            $stmt5->bind_param("i", $user_id);
+            $stmt5->execute();
+
+            $stmt6 = $conn->prepare("DELETE FROM users WHERE ID_USER = ?");
+            $stmt6->bind_param("i", $user_id);
+            $stmt6->execute();
+
+            $conn->commit();
+            header('Location: user.php');
+            exit();
+    
+        } catch (Exception $e) {
+            $conn->rollback();
+            echo "Error deleting user: " . $e->getMessage();
+        }
     }
+    
+    
     
     
     
@@ -282,19 +319,24 @@ if (isset($_SESSION['user_id'])) {
                 $('#updateForm').find('.image-wrapper').addClass('editable');
                 $('#editButton').hide();
                 $('#saveButton').show();
-
                 $('#firstNameDisplay').hide();
                 $('#lastNameDisplay').hide();
                 $('#usernameDisplay').hide();
                 $('#emailDisplay').hide();
                 $('#numberDisplay').hide();
-                $('#roleDisplay').hide();
+                if ($('#roleDisplay').text().toLowerCase() === 'admin') {
+                    $('#roleDisplay').hide();
+                    $('#role').show();
+                }
+
+               
+
                 $('#firstName').show();
                 $('#lastName').show();
                 $('#username').show();
                 $('#email').show();
                 $('#number').show();
-                $('#role').show();
+                
             });
 
             $('.image-wrapper').click(function () {
@@ -316,18 +358,15 @@ if (isset($_SESSION['user_id'])) {
                 const email = $('#email').val();
                 const number = $('#number').val();
 
-                // Perform client-side validation for email and number
                 if (!isValidEmail(email)) {
                     alert("Please enter a valid email address.");
-                    return; // Prevent form submission if validation fails
+                    return; 
                 }
 
                 if (!isValidNumber(number)) {
                     alert("Please enter a valid number.");
-                    return; // Prevent form submission if validation fails
+                    return; 
                 }
-
-                // Proceed with the form submission if all validations pass
                 const formData = new FormData($('#updateForm')[0]);
 
                 $.ajax({
@@ -339,19 +378,17 @@ if (isset($_SESSION['user_id'])) {
                     success: function (response) {
                         const data = JSON.parse(response);
                         if (data.status === 'success') {
-                            // Update display with new values
                             $("#firstNameDisplay").text($('#firstName').val());
                             $("#lastNameDisplay").text($('#lastName').val());
                             $("#usernameDisplay").text($('#username').val());
                             $("#emailDisplay").text($('#email').val());
                             $("#numberDisplay").text($('#number').val());
-                            $("#roleDisplay").text($('#role').val());
+                            $('#roleDisplay').text($('#role').val());
 
                             if (data.newImageUrl) {
                                 $("#userImageDisplay").attr('src', data.newImageUrl);
                             }
 
-                            // Hide input fields, show display fields
                             $('#updateForm').find('.hidden').addClass('hidden');
                             $('#updateForm').find('.image-wrapper').removeClass('editable');
                             $('#editButton').show();
@@ -362,6 +399,7 @@ if (isset($_SESSION['user_id'])) {
                             $('#emailDisplay').show();
                             $('#numberDisplay').show();
                             $('#roleDisplay').show();
+
                             $('#firstName').hide();
                             $('#lastName').hide();
                             $('#username').hide();
@@ -377,94 +415,65 @@ if (isset($_SESSION['user_id'])) {
                     }
                 });
             });
-
-            // Email Validation function
             function isValidEmail(email) {
                 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 return emailPattern.test(email);
             }
 
-            // Number Validation function
             function isValidNumber(number) {
-                const numberPattern = /^\d+$/;
+                const numberPattern = /^[0-9]+$/;
                 return numberPattern.test(number);
             }
 
-            // When the user types in the 'new_password' field
             $('#new_password').on('input', function() {
-                const password = $(this).val(); // Get the value of the password input
+                const password = $(this).val(); 
                 const strengthMeter = $('#password-strength');
                 const strengthText = $('#strength-text');
-
-                // Define conditions to check
                 let conditionsMet = 0;
-
-                // Condition 1: At least 8 characters
                 if (password.length >= 8) {
                     conditionsMet++;
                 }
-
-                // Condition 2: Contains at least one lowercase letter
                 if (/[a-z]/.test(password)) {
                     conditionsMet++;
                 }
-
-                // Condition 3: Contains at least one uppercase letter
                 if (/[A-Z]/.test(password)) {
                     conditionsMet++;
                 }
-
-                // Condition 4: Contains at least one digit
                 if (/\d/.test(password)) {
                     conditionsMet++;
                 }
-
-                // Condition 5: Contains at least one special character
                 if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
                     conditionsMet++;
                 }
-
-                // Evaluate password strength based on number of conditions met
                 if (conditionsMet === 5) {
-                    // Strong password
-                    strengthMeter.removeClass().addClass('strong');  // Add class for strong password style
+                    strengthMeter.removeClass().addClass('strong');  
                     strengthText.text('Strong password');
                     strengthText.css('color', 'green');
                 } else if (conditionsMet >= 3) {
-                    // Moderate password
-                    strengthMeter.removeClass().addClass('moderate'); // Add class for moderate password style
-                    strengthText.text('Moderate password');
-                    strengthText.css('color', 'yellow');
+                    strengthMeter.removeClass().addClass('moderate'); 
+                    strengthText.text('Moderate password.Password needs at least 8 characters, one lowercase letter, one uppercase letter, one number, and one special character.');
+                    strengthText.css('color', ' rgb(255, 187, 0)');
                 } else if (conditionsMet <= 2) {
-                    // Weak password
-                    strengthMeter.removeClass().addClass('weak');    // Add class for weak password style
+                    strengthMeter.removeClass().addClass('weak'); 
                     strengthText.text('Weak password.Password needs at least 8 characters, one lowercase letter, one uppercase letter, one number, and one special character.');
                     strengthText.css('color', 'red');
                 } 
             });
 
-            // Password change form submission handler
             $('#submit-button').click(function() {
                 const oldPassword = $('#old_password').val();
                 const newPassword = $('#new_password').val();
                 const repeatNewPassword = $('#repeat_new_password').val();
-
-                // Check if both passwords match
                 if (newPassword !== repeatNewPassword) {
                     alert('New passwords do not match.');
                     return;
                 }
 
-                // Regular expression to check for strong password criteria (for server-side validation)
                 const passwordStrengthPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
-
-                // If the password doesn't match the strong pattern, show an alert
                 if (!passwordStrengthPattern.test(newPassword)) {
                     alert('Password must be at least 8 characters long, include one uppercase letter, one number, and one special character.');
                     return;
                 }
-
-                // Proceed with form submission using AJAX
                 $.ajax({
                     url: 'user.php',
                     type: 'POST',
@@ -485,13 +494,204 @@ if (isset($_SESSION['user_id'])) {
                 });
             });
 
+            $('#passwordChangeButton').on('click', function() {
+                $('#password-popup').css('display', 'flex');  
+            });
+
+            $('#close-popup').on('click', function() {
+                $('#password-popup').css('display', 'none'); 
+            });
 
 
+            $('.toggle-eye').on('click', function () {
+                const input = $($(this).data('target'));
+                const icon = $(this).find('i'); 
+
+                if (input.attr('type') === "password") {
+                    input.attr('type', 'text');
+                    icon.removeClass('fa-eye-slash').addClass('fa-eye');
+                } else {
+                    input.attr('type', 'password');
+                    icon.removeClass('fa-eye').addClass('fa-eye-slash');
+                }
+            });
+
+            const $dragAndDropArea = $(".dragAndDropArea");
+            const $fileInput = $("#image");
+            const $fileNameDisplay = $(".fileNameDisplay");
+            $dragAndDropArea.on("click", function () {
+                $fileInput.trigger("click");
+            });
+            $fileInput.on("change", function () {
+                showPreview(this.files);
+            });
+            $dragAndDropArea.on("dragover", function (e) {
+                e.preventDefault();
+                $dragAndDropArea.css("background-color", "#e0e0e0");
+            });
+
+            $dragAndDropArea.on("dragleave", function () {
+                $dragAndDropArea.css("background-color", "#f9f9f9");
+            });
+
+            $dragAndDropArea.on("drop", function (e) {
+                e.preventDefault();
+                $dragAndDropArea.css("background-color", "#f9f9f9");
+                const files = e.originalEvent.dataTransfer.files;
+                $fileInput[0].files = files; 
+                showPreview(files);
+            });
+
+            function showPreview(files) {
+                $dragAndDropArea.empty(); 
+                $fileNameDisplay.empty(); 
+                if (files.length) {
+                    const file = files[0];
+                    $fileNameDisplay.text(`Selected File: ${file.name}`);
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const $img = $("<img>").attr("src", e.target.result);
+                        $dragAndDropArea.append($img);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    $dragAndDropArea.html("<p>No file chosen</p>");
+                    $fileNameDisplay.text("");
+                }
+            }
+
+            const $dragAndDropAreaMovie = $("#drop-area");
+            const $fileInputMovie = $("#movie");
+            const $fileNameDisplayMovie = $(".drop-areaName");
+            $dragAndDropAreaMovie.on("click", function () {
+                $fileInputMovie.trigger("click");
+            });
+            $fileInputMovie.on("change", function () {
+                showPreviewMovie(this.files);
+            });
+            $dragAndDropAreaMovie.on("dragover", function (e) {
+                e.preventDefault();
+                $dragAndDropAreaMovie.css("background-color", "#e0e0e0");
+            });
+
+            $dragAndDropAreaMovie.on("dragleave", function () {
+                $dragAndDropAreaMovie.css("background-color", "#f9f9f9");
+            });
+
+            $dragAndDropAreaMovie.on("drop", function (e) {
+                e.preventDefault();
+                $dragAndDropAreaMovie.css("background-color", "#f9f9f9");
+                const files = e.originalEvent.dataTransfer.files;
+                $fileInputMovie[0].files = files; 
+                showPreviewMovie(files);
+            });
+
+            function showPreviewMovie(files) {
+                $dragAndDropAreaMovie.empty(); 
+                $fileNameDisplayMovie.empty(); 
+                if (files.length) {
+                    const file = files[0];
+                    $fileNameDisplayMovie.text(`Selected File: ${file.name}`);
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const $img = $("<img>").attr("src", e.target.result);
+                        $dragAndDropAreaMovie.append($img);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    $dragAndDropAreaMovie.html("<p>No file chosen</p>");
+                    $fileNameDisplayMovie.text("");
+                }
+            }
+
+            const $dragAndDropAreaBook = $("#drop-area_book");
+            const $fileInputBook = $("#book");
+            const $fileNameDisplayBook = $(".drop-areaName_book");
+            $dragAndDropAreaBook.on("click", function () {
+                $fileInputBook.trigger("click");
+            });
+            $fileInputBook.on("change", function () {
+                showPreviewBook(this.files);
+            });
+            $dragAndDropAreaBook.on("dragover", function (e) {
+                e.preventDefault();
+                $dragAndDropAreaBook.css("background-color", "#e0e0e0");
+            });
+
+            $dragAndDropAreaBook.on("dragleave", function () {
+                $dragAndDropAreaBook.css("background-color", "#f9f9f9");
+            });
+
+            $dragAndDropAreaBook.on("drop", function (e) {
+                e.preventDefault();
+                $dragAndDropAreaBook.css("background-color", "#f9f9f9");
+                const files = e.originalEvent.dataTransfer.files;
+                $fileInputBook[0].files = files; 
+                showPreviewBook(files);
+            });
+
+            function showPreviewBook(files) {
+                $dragAndDropAreaBook.empty(); 
+                $fileNameDisplayBook.empty(); 
+                if (files.length) {
+                    const file = files[0];
+                    $fileNameDisplayBook.text(`Selected File: ${file.name}`);
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const $img = $("<img>").attr("src", e.target.result);
+                        $dragAndDropAreaBook.append($img);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    $dragAndDropAreaBook.html("<p>No file chosen</p>");
+                    $fileNameDisplayBook.text("");
+                }
+            }
 
 
+            const $dragAndDropAreaRecipe = $("#drop-area_recipe");
+            const $fileInputRecipe = $("#recipe");
+            const $fileNameDisplayRecipe = $(".drop-areaName_recipe");
+            $dragAndDropAreaRecipe.on("click", function () {
+                $fileInputRecipe.trigger("click");
+            });
+            $fileInputRecipe.on("change", function () {
+                showPreviewRecipe(this.files);
+            });
+            $dragAndDropAreaRecipe.on("dragover", function (e) {
+                e.preventDefault();
+                $dragAndDropAreaRecipe.css("background-color", "#e0e0e0");
+            });
 
+            $dragAndDropAreaRecipe.on("dragleave", function () {
+                $dragAndDropAreaRecipe.css("background-color", "#f9f9f9");
+            });
 
+            $dragAndDropAreaRecipe.on("drop", function (e) {
+                e.preventDefault();
+                $dragAndDropAreaRecipe.css("background-color", "#f9f9f9");
+                const files = e.originalEvent.dataTransfer.files;
+                $fileInputRecipe[0].files = files; 
+                showPreviewRecipe(files);
+            });
 
+            function showPreviewRecipe(files) {
+                $dragAndDropAreaRecipe.empty(); 
+                $fileNameDisplayRecipe.empty(); 
+                if (files.length) {
+                    const file = files[0];
+                    $fileNameDisplayRecipe.text(`Selected File: ${file.name}`);
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const $img = $("<img>").attr("src", e.target.result);
+                        $dragAndDropAreaRecipe.append($img);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    $dragAndDropAreaRecipe.html("<p>No file chosen</p>");
+                    $fileNameDisplayRecipe.text("");
+                }
+            }
         });
 
 
@@ -567,246 +767,376 @@ if (isset($_SESSION['user_id'])) {
             </div>
         </nav>
     </header>
-    <div class="user-profile">
-        <form id="updateForm" method="POST" enctype="multipart/form-data">
-            <div class="buttons_div">
-                <div class="user_Header">User info</div>
-                <button type="button" id="editButton">Edit</button>
-                <button type="button" id="saveButton" class="hidden">Save</button>
-            </div>
-            
-            <div class="container_for_all">
-                <input type="hidden" id="action" name="action" value="update_user">
-                <!-- Profile Image -->
-                <div class="image-container">
-                    <div class="image-wrapper">
-                        <img id="userImageDisplay" src="<?php echo htmlspecialchars($user['Image_Link']); ?>" alt="Profile Image">
-                        <label class="overlay" id="overlay" for="userImageInput">
-                            <i class="fa fa-camera camera-icon" aria-hidden="true"></i>
-                            <!-- Hidden file input to upload image -->
-                            <input type="file" id="userImageInput" name="image" style="display:none;" accept="image/*">
-                        </label>
+    <div class="div_divs">
+        <div class="user-profile">
+            <form id="updateForm" method="POST" enctype="multipart/form-data">
+                <div class="container_for_all">
+                    <input type="hidden" id="action" name="action" value="update_user">
+
+                    <!-- User Info Header -->
+                    <div class="col_us">
+                        <div class="user_Header">User Information</div>
+
+                        <!-- Profile Image -->
+                        <div class="image-container">
+                            <div class="image-wrapper">
+                                <?php if (!empty($user['Image_Link'])): ?>
+                                    <img id="userImageDisplay" src="<?php echo htmlspecialchars($user['Image_Link']); ?>" alt="Profile Image">
+                                <?php else: ?>
+                                    <img id="userImageDisplay" src="assets/fakers/no-image.jpg" alt="Profile Image">
+                                <?php endif; ?>
+
+                                <label class="overlay" id="overlay" for="userImageInput">
+                                    <i class="fa fa-camera camera-icon" aria-hidden="true"></i>
+                                    <input type="file" id="userImageInput" name="image" style="display:none;" accept="image/*">
+                                </label>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="div_inf0_user">
-                    <!-- First Name -->
-                     <div class="row_info_u">
-                        <div class="row_info_user">
-                            <label for="firstName">First Name:</label>
-                            <span id="firstNameDisplay"><?php echo htmlspecialchars($user['First_Name']); ?></span>
-                            <input type="text" id="firstName" name="firstName" value="<?php echo htmlspecialchars($user['First_Name']); ?>" class="hidden">
+
+                    <!-- User Information -->
+                    <div class="div_info_user " style="margin-top:20px;">
+                        <!-- Username -->
+                        <div class="width_long row_info_user">
+                            <label for="username">Username:</label>
+                            <span id="usernameDisplay"><?php echo htmlspecialchars($user['username']); ?></span>
+                            <input type="text" id="username" name="username" value="<?php echo htmlspecialchars($user['username']); ?>" class="hidden">
                         </div>
 
                         <!-- Last Name -->
-                        <div class="row_info_user">
-                            <label for="lastName">Last Name:</label>
-                            <span id="lastNameDisplay"><?php echo htmlspecialchars($user['Last_Name']); ?></span>
-                            <input type="text" id="lastName" name="lastName" value="<?php echo htmlspecialchars($user['Last_Name']); ?>" class="hidden">
+                         <div  class="col_respons" style="display:flex;flex-direction:row;">
+                            <div class="row_info_user">
+                                <label for="lastName">Last Name:</label>
+                                <span id="lastNameDisplay"><?php echo htmlspecialchars($user['Last_Name']); ?></span>
+                                <input type="text" id="lastName" name="lastName" value="<?php echo htmlspecialchars($user['Last_Name']); ?>" class="hidden">
+                            </div>
+
+                            <!-- First Name -->
+                            <div class="row_info_user">
+                                <label for="firstName">First Name:</label>
+                                <span id="firstNameDisplay"><?php echo htmlspecialchars($user['First_Name']); ?></span>
+                                <input type="text" id="firstName" name="firstName" value="<?php echo htmlspecialchars($user['First_Name']); ?>" class="hidden">
+                            </div>
+                         </div>
+                         <div  class="col_respons" style="display:flex;flex-direction:row;">
+                            <!-- Email -->
+                            <div class="row_info_user">
+                                <label for="email">Email:</label>
+                                <span id="emailDisplay"><?php echo htmlspecialchars($user['email']); ?></span>
+                                <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="hidden">
+                            </div>
+
+                            <!-- Phone Number -->
+                            <div class="row_info_user">
+                                <label for="number">Phone Number:</label>
+                                <span id="numberDisplay"><?php echo htmlspecialchars($user['Number']); ?></span>
+                                <input type="text" id="number" name="number" value="<?php echo htmlspecialchars($user['Number']); ?>" class="hidden">
+                            </div>
+                         </div>
+                        
+
+                        <!-- Role -->
+                        <div class="width_long row_info_user">
+                            <label for="role">Role:</label>
+                            <span id="roleDisplay"><?php echo htmlspecialchars($user['Role']); ?></span>
+                            <select id="role" name="role" class="hidden">
+                                <option value="user" <?php echo $user['Role'] === 'user' ? 'selected' : ''; ?>>user</option>
+                                <option value="admin" <?php echo $user['Role'] === 'admin' ? 'selected' : ''; ?>>admin</option>
+                            </select>
                         </div>
-
-                     </div>
-                    
-                    <!-- Username -->
-                    <div class="row_info_user">
-                        <label for="username">Username:</label>
-                        <span id="usernameDisplay"><?php echo htmlspecialchars($user['username']); ?></span>
-                        <input type="text" id="username" name="username" value="<?php echo htmlspecialchars($user['username']); ?>" class="hidden">
-                    </div>
-
-                    <!-- Email -->
-                    <div class="row_info_user">
-                        <label for="email">Email:</label>
-                        <span id="emailDisplay"><?php echo htmlspecialchars($user['email']); ?></span>
-                        <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="hidden">
-                    </div>
-
-                    <!-- Number -->
-                    <div class="row_info_user">
-                        <label for="number">Number:</label>
-                        <span id="numberDisplay"><?php echo htmlspecialchars($user['Number']); ?></span>
-                        <input type="text" id="number" name="number" value="<?php echo htmlspecialchars($user['Number']); ?>" class="hidden">
-                    </div>
-
-                    <!-- Role -->
-                    <div class="row_info_user">
-                        <label for="role">Role:</label>
-                        <span id="roleDisplay"><?php echo htmlspecialchars($user['Role']); ?></span>
-
-                        <!-- The role select field will be disabled if the role is 'user' -->
-                        <select id="role" name="role" class="hidden" <?php echo ($user['Role'] == 'user') ? 'disabled' : ''; ?>>
-                            <option value="admin" <?php echo ($user['Role'] == 'admin') ? 'selected' : ''; ?>>Admin</option>
-                            <option value="user" <?php echo ($user['Role'] == 'user') ? 'selected' : ''; ?>>User</option>
-                        </select>
-
-                        <!-- Optionally display a message that informs users with a 'user' role that they cannot change their role -->
-                        <?php if ($user['Role'] == 'user'): ?>
-                            <p class="info-message">Your role cannot be changed as you are a "User".</p>
-                        <?php endif; ?>
                     </div>
                 </div>
+
+                <!-- Buttons -->
+                <div class="buttons_div">
+                    <button type="button" id="passwordChangeButton">Change password</button>
+                    <button type="button" id="editButton">Edit</button>
+                    <button type="button" id="saveButton" class="hidden">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="password-popup" class="popup-container">
+    <div class="popup-content">
+        <!-- Popup Header with title and close icon -->
+        <div class="popup-header">
+            <h2>Password Change</h2>
+            <button id="close-popup" class="close-btn1"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <form id="password-change-form" method="post">
+            <input type="hidden" name="action" value="change_password">
+
+            <label for="old_password">Old Password:</label>
+            <div class="password-input-wrapper">
+                <input type="password" id="old_password" name="old_password" required>
+                <button type="button" class="toggle-eye" data-target="#old_password">
+                    <i class="fa-solid fa-eye-slash"></i>
+                </button>
             </div>
+
+            <label for="new_password">New Password:</label>
+            <div class="password-input-wrapper">
+                <input type="password" id="new_password" name="new_password" class="new-password_label" required>
+                <button type="button" class="toggle-eye" data-target="#new_password">
+                    <i class="fa-solid fa-eye-slash"></i>
+                </button>
+            </div>
+
+            <p id="strength-text"></p> <!-- Show 'Weak password' immediately -->
+
+            <label for="repeat_new_password">Repeat New Password:</label>
+            <div class="password-input-wrapper">
+                <input type="password" id="repeat_new_password" name="repeat_new_password" required>
+                <button type="button" class="toggle-eye" data-target="#repeat_new_password">
+                    <i class="fa-solid fa-eye-slash"></i>
+                </button>
+            </div>
+
+            <button type="button" id="submit-button">Change Password</button>
         </form>
     </div>
-
-    <form id="password-change-form" method="post">
-    <input type="hidden" name="action" value="change_password">
-
-    <label for="old_password">Old Password:</label><br>
-    <input type="password" id="old_password" name="old_password" required><br><br>
-
-    <label for="new_password">New Password:</label><br>
-    <input type="password" id="new_password" name="new_password" required><br><br>
-
-    <!-- <div id="password-strength" style="height: 10px; width: 100%; background-color: #ddd;"></div><br> -->
-    <p id="strength-text"></p> <!-- Show 'Weak password' immediately -->
-
-    <label for="repeat_new_password">Repeat New Password:</label><br>
-    <input type="password" id="repeat_new_password" name="repeat_new_password" required><br><br>
-
-    <button type="button" id="submit-button">Change Password</button>
-</form>
+</div>
 
 
 
-
-
-
-
-
-
-
-   
     <?php if ($user['Role'] === 'admin'): ?>
-        <h2>Admin Features</h2>
-        <h2>Add New User</h2>
-        <form action="user.php" method="POST" enctype="multipart/form-data">
-            <input type="hidden" name="action" value="add_user_with_role">
-            <label for="username">Username</label>
-            <input type="text" id="username" name="username" required>
-            <label for="first_name">First name</label>
-            <input type="text" id="first_name" name="first_name" required>
-            <label for="last_name">Last name</label>
-            <input type="text" id="last_name" name="last_name" required>
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" required>
-            <label for="number">Number</label>
-            <input type="text" id="number" name="number">
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" required> 
-            <label for="role">Role</label>
-            <select id="role" name="role" required>
-                <option value="">Select a role</option>
-                <option value="admin">Admin</option>
-                <option value="user">User</option>
-            </select>
-            <label for="image">Image</label>
-            <input type="file" id="image" name="image" accept="image/*" required>
-            <button type="submit">Add User</button>
-        </form>
-        <h2>Add New Movie</h2>
-        <form action="user.php" method="POST" enctype="multipart/form-data">
-            <input type="hidden" name="action" value="add_movie">
-            <label for="title">Title</label>
-            <input type="text" id="title" name="title" required>
-            <label for="description">Description</label>
-            <textarea id="description" name="description" required></textarea>
-            <label for="category_id">Category</label>
-            <select id="category_id" name="category_id" required>
-                <option value="">Select a category</option>
-                <?php while ($category = $categories->fetch_assoc()): ?>
-                    <option value="<?php echo $category['id_category']; ?>"><?php echo htmlspecialchars($category['Name']); ?></option>
-                <?php endwhile; ?>
-            </select>
-            <label for="image">Image</label>
-            <input type="file" id="image" name="image" accept="image/*" required>
-            <button type="submit">Add Movie</button>
-        </form>
-        
+        <div class="admin-container">
+            <h2 class="admin_header">Admin Features</h2>
+            <!-- Users List -->
+            <div class="user-list-container">
+                <h2>Users list</h2>
+                <ul>
+                    <?php while ($user_list = $users_list->fetch_assoc()): ?>
+                        <?php if($user_list['ID_USER'] != $_SESSION['user_id']): ?>
+                            <li class="user-item">
+                                <!-- User Image -->
+                                 <div class="info_list_user">
+                                    <div class="user-image">
+                                        <?php if (!empty($user_list['Image_Link'])): ?>
+                                            <img src="<?php echo htmlspecialchars($user_list['Image_Link']); ?>" alt="User Image">
+                                        <?php else: ?>
+                                            <img src="assets/fakers/no-image.jpg" alt="User Image">
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="user-info_list">
+                                        <strong><?php echo htmlspecialchars($user_list['username']); ?> </strong> - 
+                                        <?php echo htmlspecialchars($user_list['email']); ?> - 
+                                        <?php echo htmlspecialchars($user_list['Role']); ?>
+                                    </div>
 
-        <h3>Add New Book</h3>
-        <form action="user.php" method="POST" enctype="multipart/form-data">
-            <input type="hidden" name="action" value="add_book">
-            <label for="title">Title:</label>
-            <input type="text" name="title" required><br>
+                                 </div>
+                                <div class="buttons_user_list">
+                                    <!-- Form to Change User Role -->
+                                    <form action="user.php" method="POST" class="role-form">
+                                        <input type="hidden" name="action" value="change_user_role">
+                                        <input type="hidden" name="user_id" value="<?php echo $user_list['ID_USER']; ?>">
+                                        <select name="new_role" required>
+                                            <option value="">Change Role</option>
+                                            <option value="admin" <?php if ($user_list['Role'] === 'admin') echo 'selected'; ?>>Admin</option>
+                                            <option value="user" <?php if ($user_list['Role'] === 'user') echo 'selected'; ?>>User</option>
+                                        </select>
+                                        <button type="submit" class="change_role_user">Change role</button>
+                                    </form>
 
-            <label for="author">Author:</label>
-            <input type="text" name="author" required><br>
-
-            <label for="description">Description:</label>
-            <textarea name="description" required></textarea><br>
-
-            <label for="category_id">Category:</label>
-            <select id="category_id" name="category_id" required>
-                <option value="">Select a category</option>
-                <?php while ($category = $categories_books->fetch_assoc()): ?>
-                    <option value="<?php echo $category['id_category']; ?>"><?php echo htmlspecialchars($category['Name']); ?></option>
-                <?php endwhile; ?>
-            </select><br>
-
-            <label for="image">Book Image:</label>
-            <input type="file" name="image" accept="image/*"><br>
-
-            <input type="submit" value="Add Book">
-        </form>
-
-        <h3>Add New Goal</h3>
-        <form action="user.php" method="post">
-            <input type="hidden" name="action" value="add_goal">
-            <label for="goal_text">Goal:</label>
-            <textarea name="goal_text" required></textarea><br>
-
-            <input type="submit" value="Add Goal">
-        </form>
-
-        <h3>Add New Recipe</h3>
-        <form action="user.php" method="post" enctype="multipart/form-data">
-            <input type="hidden" name="action" value="add_recipe">
-            <label for="title">Title:</label>
-            <input type="text" name="title" required><br>
-
-            <label for="ingredients">Ingredients:</label>
-            <textarea name="ingredients" required></textarea><br>
-
-            <label for="instructions">Instructions:</label>
-            <textarea name="instructions" required></textarea><br>
-
-            <label for="image">Recipe Image:</label>
-            <input type="file" name="image" accept="image/*"><br>
-
-            <input type="submit" value="Add Recipe">
-        </form>
-        <!-- Users List -->
-        <h2>Users List:</h2>
-        <ul>
-            <?php while ($user_list = $users_list->fetch_assoc()): ?>
-                <?php if($user_list['ID_USER'] != $_SESSION['user_id']): ?>
-                    <li>
-                        <?php echo htmlspecialchars($user_list['username']); ?> - 
-                        <?php echo htmlspecialchars($user_list['email']); ?> - 
-                        <?php echo htmlspecialchars($user_list['Role']); ?>
-                        
-                        <!-- Form to Change User Role -->
-                        <form action="user.php" method="POST" style="display:inline;">
-                            <input type="hidden" name="action" value="change_user_role">
-                            <input type="hidden" name="user_id" value="<?php echo $user_list['ID_USER']; ?>">
-                            <select name="new_role" required>
-                                <option value="">Change Role</option>
-                                <option value="admin" <?php if ($user_list['Role'] === 'admin') echo 'selected'; ?>>Admin</option>
-                                <option value="user" <?php if ($user_list['Role'] === 'user') echo 'selected'; ?>>User</option>
-                            </select>
-                            <button type="submit">Change</button>
-                        </form>
-                        
-                        <!-- User Image -->
-                        <?php if (!empty($user_list['Image_Link'])): ?>
-                            <img src="<?php echo htmlspecialchars($user_list['Image_Link']); ?>" alt="User Image" style="width:50px;height:auto;">
-                        <?php else: ?>
-                            <p>No image found</p>
+                                    <form action="user.php" method="POST" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                                        <input type="hidden" name="action" value="delete_user">
+                                        <input type="hidden" name="user_id" value="<?php echo $user_list['ID_USER']; ?>">
+                                        <button type="submit" class="delete-button"><i class="fa-solid fa-trash"></i></button>
+                                    </form>
+                                </div>
+                                
+                            </li>
                         <?php endif; ?>
-                    </li>
-                <?php endif; ?>
-            <?php endwhile; ?>
-        </ul>
+                    <?php endwhile; ?>
+                </ul>
+            </div>
+            <div class="form-container">
+                <h2>Create new user</h2>
+                <form action="user.php" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="add_user_with_role">
+                    
+                    <div class="form-group">
+                        <label for="username">Username:</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="first_name">First name:</label>
+                        <input type="text" id="first_name" name="first_name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="last_name">Last name:</label>
+                        <input type="text" id="last_name" name="last_name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="number">Number:</label>
+                        <input type="text" id="number" name="number">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password:</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="role">Role:</label>
+                        <select id="role" name="role" required>
+                            <option value="">Select a role</option>
+                            <option value="admin">Admin</option>
+                            <option value="user">User</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group col">
+                        <label for="image">Image:</label>
+                        <div class="dragAndDropArea" >
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <p>Drag & Drop an image here to upload</p>
+                        </div>
+                        <input type="file" id="image" name="image" accept="image/*" style="display: none;">
+                        <div class="fileNameDisplay" style="margin-top: 5px; font-size: 14px; color: #555;"></div>
+                    </div>
+
+                    <button type="submit" class="btn">Add User</button>
+                </form>
+            </div>
+            <div class="form-container">
+                <h2>Create new movie</h2>
+                <form action="user.php" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="add_movie">
+
+                    <div class="form-group">
+                        <label for="title">Title:</label>
+                        <input type="text" id="title" name="title" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description:</label>
+                        <textarea id="description" name="description" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category_id">Category:</label>
+                        <select id="category_id" name="category_id" required>
+                            <option value="">Select a category</option>
+                            <?php while ($category = $categories->fetch_assoc()): ?>
+                                <option value="<?php echo $category['id_category']; ?>"><?php echo htmlspecialchars($category['Name']); ?></option>
+                            <?php endwhile; ?>
+                        </select>
+                    </div>
+
+                    <div class="form-group col">
+                        <label for="movie">Image:</label>
+                        <div id="drop-area" class="drop-area">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <p>Drag & Drop an image here to upload</p>
+                        </div>
+                        <input type="file" id="movie" name="movie" accept="image/*" required style="display:none;">
+                        <div class="drop-areaName" style="margin-top: 5px; font-size: 14px; color: #555;"></div>
+                    </div>
+                    
+
+                    <button type="submit" class="btn">Add Movie</button>
+                </form>
+            </div>
+            <div class="form-container">
+                <h3>Create new book</h3>
+                <form action="user.php" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="add_book">
+
+                    <div class="form-group">
+                        <label for="title">Title:</label>
+                        <input type="text" name="title" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="author">Author:</label>
+                        <input type="text" name="author" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description:</label>
+                        <textarea name="description" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category_id">Category:</label>
+                        <select id="category_id" name="category_id" required>
+                            <option value="">Select a category</option>
+                            <?php while ($category = $categories_books->fetch_assoc()): ?>
+                                <option value="<?php echo $category['id_category']; ?>"><?php echo htmlspecialchars($category['Name']); ?></option>
+                            <?php endwhile; ?>
+                        </select>
+                    </div>
+
+                    <div class="form-group col">
+                        <label for="book">Image:</label>
+                        <div id="drop-area_book" class="drop-area">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <p>Drag & Drop an image here to upload</p>
+                        </div>
+                        <input type="file" id="book" name="book" accept="image/*" required style="display:none;">
+                        <div class="drop-areaName_book" style="margin-top: 5px; font-size: 14px; color: #555;"></div>
+                    </div>
+
+                    <button type="submit" class="btn">Add Book</button>
+                </form>
+            </div>
+            <div class="form-container">
+                <h3>Create new goal</h3>
+                <form action="user.php" method="post">
+                    <input type="hidden" name="action" value="add_goal">
+                    <div class="form-group">
+                        <label for="goal_text">Goal:</label>
+                        <textarea name="goal_text" required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn">Add Goal</button>
+                </form>
+            </div>
+            <div class="form-container" style="margin-bottom: 60px;">
+                <h3>Create new recipe</h3>
+                <form action="user.php" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="add_recipe">
+
+                    <div class="form-group">
+                        <label for="title">Title:</label>
+                        <input type="text" name="title" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ingredients">Ingredients:</label>
+                        <textarea name="ingredients" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="instructions">Instructions:</label>
+                        <textarea name="instructions" required></textarea>
+                    </div>
+
+                    <div class="form-group col">
+                        <label for="recipe">Image:</label>
+                        <div id="drop-area_recipe" class="drop-area">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <p>Drag & Drop an image here to upload</p>
+                        </div>
+                        <input type="file" id="recipe" name="recipe" accept="image/*" required style="display:none;">
+                        <div class="drop-areaName_recipe" style="margin-top: 5px; font-size: 14px; color: #555;"></div>
+                    </div>
+
+                    <button type="submit" class="btn">Add Recipe</button>
+                </form>
+            </div>
+        </div>
+
 
     <?php endif; ?>
 
@@ -829,6 +1159,5 @@ if (isset($_SESSION['user_id'])) {
     </footer>
 
 <script src="assets/js/header_footer.js"></script>
-<script scr="assets/js/user.js"></script>
 </body>
 </html>

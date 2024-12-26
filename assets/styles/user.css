@@ -1,82 +1,77 @@
+.div_divs {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding: 20px;
+    min-height: 90vh;
+}
 .user-profile {
     width: 90%;
+    font-family: "Crimson Text", serif;
     margin: 20px auto;
-    background: rgba(255, 255, 255, 0.95);
-    padding: 20px;
+    background: #ffffff; 
+    padding: 30px;
     border-radius: 20px;
-    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.15);
-    color: #333;
-    border: 1px solid #e5e5e5;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15); 
+    color: #333333;
+    border: 1px solid #e0e0e0; 
 }
-
 #updateForm {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: start;
 }
-
 .container_for_all {
     display: flex;
     flex-direction: row;
     justify-content: start;
     align-items: center;
 }
-
-.buttons_div {
+.col_us {
     display: flex;
-    flex-direction: row;
-    justify-content: start;
-    align-items: center;
-    width: 100%;
+    flex-direction: column;
+    justify-content: center;
 }
-
-#editButton, #saveButton {
-    margin-left: auto;
-}
-
 .user_Header {
-    font-size: 2rem;
-    padding-right: 50%;
-    border-bottom: 2px solid #ddd;
-    font-family: 'Arial', sans-serif;
-    color: #444;
-    text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
+    font-size: 1.45rem; 
+    padding-bottom: 15px;
+    border-bottom: 2px solid #ccc; 
+    color: #222222; 
+    text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1); 
 }
-
 .image-container {
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: start;
     text-align: left;
+    margin-top: 20px;
 }
-
 .image-wrapper {
     position: relative;
     display: inline-block;
     width: 200px;
     height: 200px;
-    border-radius: 15px;
+    border-radius: 12px;
     overflow: hidden;
-    background-color: rgba(245, 245, 245, 0.7);
-    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15);
+    background-color: #f8f8f8; 
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2); 
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
-
 .image-wrapper img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
-
-/* Overlay for Image Upload Button */
 .overlay {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.45); 
     display: flex;
     align-items: center;
     justify-content: center;
@@ -84,138 +79,356 @@
     transition: opacity 0.3s ease;
     pointer-events: none;
 }
-
 .image-wrapper.editable:hover .overlay {
     opacity: 1;
     pointer-events: auto;
-    transform: scale(1.1);
 }
-
 .camera-icon {
     color: #fff;
     font-size: 24px;
     cursor: pointer;
 }
-
-.user-profile .div_inf0_user {
+.div_info_user {
     display: flex;
     flex-direction: column;
-    align-items: start;
-    gap: 20px;
-    margin: 30px 50px;
-}
-.row_info_u{
-    display: flex;
-    flex-direction: row;
-    justify-content: left;
-}
-
-.user-profile label {
-    font-size: 14px;
-    color: #777;
-    font-weight: 600;
-    margin-bottom: 6px;
-    letter-spacing: 0.5px;
-}
-
-.user-profile input[type="text"],
-.user-profile input[type="email"],
-.user-profile input[type="password"],
-.user-profile select {
-    padding: 12px;
-    margin: 8px 0;
-    border-radius: 12px;
-    border: 1px solid #d7d7d7;
-    background-color: rgba(255, 255, 255, 0.9);
     width: 100%;
-    max-width: 320px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    align-items: flex-start;
+    gap: 18px;
+    margin: 0px 50px;
+}
+.width_long{
+    width: 940px!important;
+}
+.row_info_user {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 450px;
+    padding: 12px 25px; 
+    border-radius: 10px; 
+    border: 1px solid #e0e0e0; 
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    margin-right: 40px;
+}
+.row_info_user:hover {
+    background-color: #f2f2f2; 
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+.row_info_user label {
+    font-weight: bold;
+    width: 180px; 
+    color: #444444;
+}
+.row_info_user span {
+    flex-grow: 1;
+    font-size: 16px; 
+    padding: 0 12px;
+    color: #333;
+    text-align: right;
+}
+.row_info_user input,
+.row_info_user select {
+    padding: 6px 12px;
+    border-radius: 10px;
+    border: 1px solid #d7d7d7;
+    background-color: #ffffff; 
+    font-size: 15px;
+    width: 100%;
+    max-width: 220px; 
+    text-align: right;
+    box-shadow: 0 4px 5px rgba(0, 0, 0, 0.1);
     transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.user-profile input[type="text"]:focus,
-.user-profile input[type="email"]:focus,
-.user-profile input[type="password"]:focus,
-.user-profile select:focus {
+.row_info_user input:focus,
+.row_info_user select:focus {
     outline: none;
-    border: 1px solid #bbb;
-    box-shadow: 0 0 15px rgba(0, 102, 255, 0.4);
-}
-
-.info-message {
-    font-size: 13px;
-    color: #888;
-    margin-top: 5px;
-    font-style: italic;
+    border-color: #aaa; 
+    box-shadow: 0 0 15px rgba(3, 3, 3, 0.4);
 }
 
 .hidden {
     display: none;
 }
 
-.user-profile button {
-    background-color: #3b3b3b;
-    color: #fff;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 15px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+.buttons_div {
+    display: flex;
+    justify-content: flex-start;
+    gap: 20px;
+    width: 100%;
+}
+#editButton, 
+#saveButton{
+    margin-left: auto;
 }
 
-.user-profile button:hover {
-    background-color: #2b2b2b;
+#editButton, 
+#saveButton,
+#passwordChangeButton,
+#submit-button {
+    background-color: #444444; 
+    color: #fff;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15); 
+}
+#passwordChangeButton{
+    width: 200px;
+}
+
+#editButton:hover, 
+#saveButton:hover,
+#passwordChangeButton:hover,
+#submit-button:hover {
+    background-color: #333333; 
     transform: translateY(-2px);
 }
 
-.user-profile button:disabled {
-    background-color: #ddd;
+#editButton:disabled, 
+#saveButton:disabled,
+#submit-button:disabled {
+    background-color: #b5b5b5;
     cursor: not-allowed;
 }
 
-/* For rows that contain both span and input fields, make sure they're the same size */
-.row_info_user {
+.info-message {
+    font-size: 14px;
+    color: #888;
+    margin-top: 5px;
+    font-style: italic;
+}
+@media (max-width: 1430px) {
+    .div_divs {
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 10px; 
+    }
+
+    .user-profile {
+        width: 90%;  
+        padding: 20px;
+    }
+
+    .container_for_all {
+        flex-direction: column;
+        align-items: center;
+    }
+    .width_long{
+        width: 100%!important;
+    }
+
+    .col_us {
+        align-items: center;
+    }
+
+    .image-wrapper {
+        width: 250px;
+        height: 250px;
+    }
+
+    .row_info_user {
+        width: 100%;
+        margin-right: 0;
+        padding: 12px;
+    }
+
+    .row_info_user label {
+        font-size: 14px;
+        width: auto; 
+    }
+    .col_respons{
+        overflow-x: hidden;
+        display: flex!important;
+        flex-direction: column!important;
+        align-items: center!important;
+        justify-content: center!important;
+        width: 100%;
+        gap: 18px;
+    }
+    .row_info_user span {
+        font-size: 12px;
+    }
+
+    .buttons_div {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+    #editButton, #saveButton, #passwordChangeButton, #submit-button {
+        width: 100%;
+        padding: 12px 24px;
+        text-align: center;
+    }
+    .popup-content{
+        width: 90%!important;
+    }
+}
+
+
+.popup-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.75); 
+    z-index: 99999999999;
+    justify-content: center;
+    align-items: center;
+}
+#password-popup{
+    display: none;
+}
+.popup-content {
+    background-color: white;
+    padding: 40px;
+    border-radius: 10px;
+    width: 40%;
+    text-align: left;
+    position: relative; 
+}
+.popup-header {
     display: flex;
-    flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    padding: 0; /* Remove any padding */
-    width: 100%;
-    max-width: 600px;
-    background-color: rgba(245, 245, 245, 0.7);
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.3s ease;
-    margin: 5px 0;  /* Apply some margin between rows for spacing */
+    margin-bottom: 20px;
 }
-
-.row_info_user:hover {
-    background-color: rgba(245, 245, 245, 1);
+.popup-header h2 {
+    font-size: 1.5rem;
+    margin: 0;
 }
-
-.row_info_user input,
-.row_info_user select {
-    max-width: 200px;  /* Ensure the input takes up the correct width */
-    margin-left: 10px;
-    padding: 10px;  /* Maintain consistent padding */
-    font-size: 14px;
-}
-
-.row_info_user span {
-    flex-grow: 1;
-    font-size: 16px;
+.close-btn1 {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
     color: #444;
-    padding: 10px 0;
-    display: flex;
-    justify-content: space-between;
+    cursor: pointer;
+    transition: transform 0.2s ease, color 0.2s ease;
 }
 
-.row_info_user input[type="text"],
-.row_info_user input[type="email"],
-.row_info_user select {
-    max-width: 200px;  /* Limit max-width for input fields to match the span size */
+.close-btn1:hover {
+    transform: scale(1.2);
+    color: rgb(78, 73, 73);  
 }
+
+#password-change-form {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 100%;
+}
+
+#password-change-form label {
+    font-weight: bold;
+    color: #444444;
+    margin-bottom: 10px; 
+}
+
+#password-change-form input {
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #d7d7d7;
+    background-color: #ffffff; 
+    font-size: 15px;
+    width: 100%;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.new-password_label{
+    margin-bottom: 5px!important;
+}
+
+#password-change-form input:focus {
+    outline: none;
+    border-color: #aaa;
+    box-shadow: 0 0 15px rgba(3, 3, 3, 0.4);
+}
+
+#strength-text {
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 15px;
+    margin-top: 2px;
+    font-style: italic;
+}
+
+.buttons_div {
+    display: flex;
+    justify-content: flex-start;
+    gap: 20px;
+    width: 100%;
+    margin-top: 20px;
+}
+
+#submit-button {
+    background-color: #444444;
+    color: #fff;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 20px;
+    margin-top: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15);
+}
+
+#submit-button:hover {
+    background-color: #333333; 
+    transform: translateY(-2px);
+}
+
+#submit-button:disabled {
+    background-color: #b5b5b5;
+    cursor: not-allowed;
+}
+#passwordChangeButton {
+    padding: 12px 20px;
+    background-color: #444444;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#passwordChangeButton:hover {
+    background-color: #333333;
+}
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.toggle-eye {
+    background: none;
+    border: none;
+    position: absolute;
+    right: 15px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: #888;
+}
+
+.toggle-eye:focus {
+    outline: none;
+}
+
+.toggle-eye i {
+    transition: color 0.2s ease;
+}
+
+.toggle-eye:hover i {
+    color: #444;
+}
+
+
+
 
 
 /*---------------------Password change------------------------------*/
@@ -237,7 +450,7 @@
 }
 
 .moderate {
-    background-color: yellow;
+    background-color: rgb(255, 187, 0);
     width: 66%;
 }
 
@@ -249,4 +462,367 @@
 #strength-text {
     font-size: 14px;
     margin-top: 5px;
+}
+
+/*Make more divs*/
+.admin-container {
+    width: 100%;
+    padding: 0px;
+    background-color: #f9f9f9;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.1);
+}
+
+.admin_header{
+    font-size: 3rem;
+    margin-top: 20px;
+    color: #333;
+    text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1);
+}
+.admin-container h3 {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    color: #333;
+    text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1);
+}
+.form-container h2,.form-container h3{
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    padding: 10px;
+    color: #333;
+    text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid #333;
+}
+.user-list-container h2{
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    padding: 10px;
+    color: #333;
+    text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid #333;
+}
+.form-container {
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    width: 90%;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+.form-container form{
+    margin-top: 20px;
+    padding: 20px;
+    padding-top: 5px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    align-items: start;
+}
+
+.form-group label {
+    font-weight: bold;
+    font-size: 1rem;
+    color: #555;
+    width: 10%;
+    min-width: 150px;
+    margin-top: 5px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea  {
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #d7d7d7;
+    background-color: #ffffff; 
+    font-size: 15px;
+    width: 70%;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus  {
+    outline: none;
+    border-color: #aaa;
+    box-shadow: 0 0 15px rgba(3, 3, 3, 0.4);
+}
+
+@media (max-width:450px){
+    .form-group{
+        flex-direction: column;
+    }
+    .form-container{
+        padding: 10px;
+    }
+    .form-container form{
+        margin-top: 0px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea,
+    .form-group label{
+        width: 100%;
+    }
+    .form-group label{
+        margin-bottom: 5px;
+    }
+    .admin_header{
+        font-size: 1.5rem;
+        gap: 15px;
+    }
+    .form-container h2,.form-container h3{
+        font-size: 1.2rem;
+        margin-bottom: 10px;
+    }
+}
+.change_role_user,.btn{
+    background-color: #444;
+    color: #fff;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+}
+.change_role_user:hover,.btn:hover{
+    background-color: #333;
+    transform: translateY(-2px);
+}
+.change_role_user:disabled,.btn:disabled{
+    background-color: #b5b5b5;
+    cursor: not-allowed;
+}
+.delete-button {
+    background-color: transparent; 
+    border: none; 
+    cursor: pointer; 
+    padding: 10px; 
+    transition: all 0.3s ease; 
+}
+
+.delete-button i {
+    font-size: 20px;
+    color: #333; 
+    transition: transform 0.3s ease, box-shadow 0.3s ease; 
+}
+
+.delete-button:hover i {
+    transform: scale(1.2); 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
+    color: #353535; 
+}
+@media (max-width:500px){
+    .user-info_list{
+        font-size: 12px!important;
+    }
+    .change_role_user{
+        padding: 10px 16px;
+        font-size: 10px!important;
+    }
+    .role-form select{
+        font-size: 10px!important;
+        padding: 4px;
+    }
+}
+select {
+    background-color: #fff;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.user-list-container {
+    width: 90%;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+
+
+.user-list-container ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.user-item {
+    display: flex;
+    justify-content: space-between;
+    justify-content: start;
+    align-items: center;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.user-item:hover {
+    background-color: #f9f9f9;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.user-info_list{
+    margin-left:10px;
+    font-size: 16px;
+    color: #444;
+}
+.role-form {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    gap: 12px;
+}
+
+.role-form select {
+    padding: 8px;
+    font-size: 15px;
+    border-radius: 10px;
+    border: 1px solid #d7d7d7;
+    background-color: #fff;
+}
+
+.user-image {
+    margin-left: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.role-form select:focus {
+    outline: none;
+    border-color: #aaa;
+    box-shadow: 0 0 15px rgba(3, 3, 3, 0.4);
+}
+
+.user-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.info_list_user{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+.buttons_user_list{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin-left: auto;
+}
+.user-image p {
+    font-size: 14px;
+    color: #888;
+    text-align: center;
+    margin-top: 12px;
+}
+@media (max-width:900px){
+    .user-item{
+        flex-direction: column;
+    }
+    .buttons_user_list{
+        margin-top: 10px;
+        margin-left: 1px;
+    }
+    .user-list-container h2{
+        text-align: center;
+    }
+}
+.dragAndDropArea,#drop-area,#drop-area_book,#drop-area_recipe {
+    border: 2px dashed #ccc;
+    padding: 20px;
+    width: 70%;
+    height: 200px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: #333;
+    background-color: #f9f9f9;
+    transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease; 
+    margin-left: 150px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); 
+}
+
+.dragAndDropArea:hover ,#drop-area:hover,#drop-area_book:hover,#drop-area_recipe:hover{
+    background-color: transparent;
+    border-color: #ffffff;
+    transform: translateY(-10px); 
+    box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.2);
+}
+
+.dragAndDropArea i,#drop-area i,#drop-area_book i,#drop-area_recipe i {
+    font-size: 5rem;
+    color: #555;
+    transition: color 0.3s ease;
+}
+
+.dragAndDropArea:hover i,#drop-area:hover i ,#drop-area_book:hover i,#drop-area_recipe:hover i{
+    color: #333;
+}
+
+.dragAndDropArea img,#drop-area img ,#drop-area_book img,#drop-area_recipe img{
+    width: 300px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 10px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); 
+    border: 1px solid #ddd;
+}
+
+.fileNameDisplay,.drop-areaName,.drop-areaName_book,.drop-areaName_recipe {
+    margin-left: 150px;
+}
+
+@media (max-width: 600px) and (min-width:400px) {
+    .dragAndDropArea,#drop-area,#drop-area_book,#drop-area_recipe {
+        width: 100%; 
+        margin-left: 0; 
+        margin-top: 20px;
+    }
+    .fileNameDisplay,.drop-areaName,.drop-areaName_book,.drop-areaName_recipe{
+        margin-left: 0;
+        text-align: center; 
+    }
+}
+@media (max-width: 400px){
+    .dragAndDropArea img,#drop-area img ,#drop-area_book img,#drop-area_recipe img{
+        width: 200px;
+        height: 200px;
+    }
+    .dragAndDropArea,#drop-area,#drop-area_book,#drop-area_recipe {
+        width: 100%; 
+        margin-top: 20px;
+        margin-left: 0; 
+    }
+    .fileNameDisplay,.drop-areaName,.drop-areaName_book,l.drop-areaName_recipe {
+        margin-left: 0; 
+        text-align: center; 
+    }
+}
+
+.col {
+    display: flex;
+    flex-direction: column;
 }
