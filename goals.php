@@ -4,47 +4,6 @@ include 'includes/functions.php';
 include 'includes/db.php';
 check_login();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_goal') {
-    $goalText = trim($_POST['goal_text']);
-    
-    if (!empty($goalText)) {
-        $sql = "INSERT INTO goals (user_id, text, is_completed, visibility) VALUES (?, ?, 0, 0)";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param('is', $_SESSION['user_id'], $goalText);
-        
-        if (!$stmt->execute()) {
-            echo "Error adding goal: " . $stmt->error;
-        }
-        $stmt->close(); 
-    } else {
-        echo "<p>Please enter a goal.</p>";
-    }
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_goals') {
-    $sql_update_all = "UPDATE goals SET is_completed = 0 WHERE user_id = ?";
-    $stmt_update_all = $conn->prepare($sql_update_all);
-    $stmt_update_all->bind_param('i', $_SESSION['user_id']);
-    $stmt_update_all->execute();
-    $stmt_update_all->close();
-    if (isset($_POST['goals'])) {
-        foreach ($_POST['goals'] as $goalId) {
-            $sql_update = "UPDATE goals SET is_completed = 1 WHERE id_goals = ?";
-            $stmt_update = $conn->prepare($sql_update);
-            $stmt_update->bind_param('i', $goalId);
-            $stmt_update->execute();
-            $stmt_update->close(); 
-        }
-    }
-}
-
-// Fetching goals
-$sql = "SELECT * FROM goals WHERE user_id = ? ";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param('i', $_SESSION['user_id']);
-$stmt->execute();
-$result = $stmt->get_result();
-
 $userData = null;
 if (isset($_SESSION['user_id'])) {
     $user_id_for_header = $_SESSION['user_id'];
@@ -56,7 +15,96 @@ if (isset($_SESSION['user_id'])) {
     $userData = $result_for_header->fetch_assoc();
     $stmt_for_header->close();
 }
+
+$filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
+$filterQuery = '';
+
+if ($filter === 'in_progress') {
+    $filterQuery = "AND is_completed = 0";
+} elseif ($filter === 'completed') {
+    $filterQuery = "AND is_completed = 1";
+}
+
+$sql = "SELECT * FROM goals WHERE user_id = ? $filterQuery ORDER BY id_goals DESC";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param('i', $_SESSION['user_id']);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_goal') {
+    $goalText = trim($_POST['goal_text']);
+
+    if (!empty($goalText)) {
+        $sql = "INSERT INTO goals (user_id, text, is_completed, visibility) VALUES (?, ?, 0, 0)";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param('is', $_SESSION['user_id'], $goalText);
+
+        if ($stmt->execute()) {
+            header("Location: goals.php?filter=" . $filter);
+            exit();
+        } else {
+            echo "Error adding goal: " . $stmt->error;
+        }
+        $stmt->close();
+    } else {
+        echo "<p>Please enter a goal.</p>";
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_goals') {
+    $sql_update_all = "UPDATE goals SET is_completed = 0 WHERE user_id = ?";
+    $stmt_update_all = $conn->prepare($sql_update_all);
+    $stmt_update_all->bind_param('i', $_SESSION['user_id']);
+    $stmt_update_all->execute();
+    $stmt_update_all->close();
+
+    if (isset($_POST['goals'])) {
+        foreach ($_POST['goals'] as $goalId) {
+            $sql_update = "UPDATE goals SET is_completed = 1 WHERE id_goals = ?";
+            $stmt_update = $conn->prepare($sql_update);
+            $stmt_update->bind_param('i', $goalId);
+            $stmt_update->execute();
+            $stmt_update->close();
+        }
+    }
+    header("Location: goals.php?filter=" . $filter);
+    exit();
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_goal') {
+    $goalId = isset($_POST['goal_id']) ? (int)$_POST['goal_id'] : 0;
+
+    if ($goalId) {
+        $sql_check_goal = "SELECT id_goals FROM goals WHERE id_goals = ? AND user_id = ?";
+        $stmt_check_goal = $conn->prepare($sql_check_goal);
+        $stmt_check_goal->bind_param('ii', $goalId, $_SESSION['user_id']);
+        $stmt_check_goal->execute();
+        $result_check_goal = $stmt_check_goal->get_result();
+
+        if ($result_check_goal->num_rows > 0) {
+            $sql_delete = "DELETE FROM goals WHERE id_goals = ?";
+            $stmt_delete = $conn->prepare($sql_delete);
+            $stmt_delete->bind_param('i', $goalId);
+            
+            if ($stmt_delete->execute()) {
+                echo "success";
+            } else {
+                echo "error";
+            }
+            $stmt_delete->close();
+        } else {
+            echo "error";
+        }
+
+        $stmt_check_goal->close();
+    } else {
+        echo "error";
+    }
+
+    exit();
+}
+
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -64,9 +112,54 @@ if (isset($_SESSION['user_id'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Goals</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="assets/styles/goals.css">
     <?php include 'includes/fontawesome.php'; ?> 
     <link rel="stylesheet" href="assets/styles/header_footer.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $(".delete-goal").click(function() {
+                var goalId = $(this).data("goal-id");
+                if (confirm("Are you sure you want to delete this goal?")) {
+                    $.ajax({
+                        url: 'goals.php',  
+                        type: 'POST',
+                        data: {
+                            action: 'delete_goal',
+                            goal_id: goalId
+                        },
+                        success: function(response) {
+                            if (response === "success") {
+                                $("#goal-" + goalId).fadeOut(400, function() {
+                                    $(this).remove(); 
+                                });
+                            } else {
+                                alert("Error deleting goal");
+                            }
+                        },
+                        error: function() {
+                            alert("There was an error with the request. Please try again.");
+                        }
+                    });
+                }
+            });
+            $('.filter-icon').click(function() {
+                $('#filterModal').addClass('open');
+                $('body').addClass('modal-open');
+            });
+
+            $('.close-modal').click(function() {
+                $('#filterModal').removeClass('open');
+                $('body').removeClass('modal-open');
+            });
+            $(document).click(function(event) {
+                if (!$(event.target).closest('.filter-modal-content').length && !$(event.target).closest('.filter-icon').length) {
+                    $('#filterModal').removeClass('open');
+                    $('body').removeClass('modal-open');
+                }
+            });
+        });
+        </script>
 </head>
 <body>
     <header>
@@ -138,28 +231,76 @@ if (isset($_SESSION['user_id'])) {
             </div>
         </nav>
     </header>
-    <h2>Your Goals</h2>
-    
-    <form method="POST" action="goals.php">
-        <input type="hidden" name="action" value="add_goal">
-        <label for="goal_text">New Goal:</label>
-        <input type="text" name="goal_text" required>
-        <button type="submit">Add Goal</button>
-    </form>
+    <div class="main-container">
+        <div class="goals-container">
+            <h2>Your Goals</h2>
 
-    <h3>Current Goals</h3>
-    <form method="POST" action="goals.php">
-        <input type="hidden" name="action" value="update_goals">
-        <ul>
-            <?php while ($goal = $result->fetch_assoc()): ?>
-                <li>
-                    <input type="checkbox" name="goals[]" value="<?php echo $goal['id_goals']; ?>" <?php echo $goal['is_completed'] ? 'checked' : ''; ?>>
-                    <?php echo htmlspecialchars($goal['text']); ?> - <?php echo $goal['is_completed'] ? 'Completed' : 'In Progress'; ?>
-                </li>
-            <?php endwhile; ?>
-        </ul>
-        <button type="submit">Update Goals</button>
-    </form>
+            <form method="POST" action="goals.php" class="goals-form">
+                <input type="hidden" name="action" value="add_goal">
+                <label for="goal_text">New Goal:</label>
+                <input type="text" name="goal_text" required>
+                <button type="submit" class="btn">Add Goal</button>
+            </form>
+            <div class="goals-header">
+                <h3>Goals: 
+                    <?php 
+                        if ($filter === 'in_progress') {
+                            echo 'In Progress';
+                        } elseif ($filter === 'completed') {
+                            echo 'Completed';
+                        } else {
+                            echo 'All Goals';
+                        }
+                    ?>
+                </h3>
+                <span class="filter-icon">
+                    <i class="fas fa-filter"></i>
+                </span>
+            </div>
+            <div id="filterModal" class="filter-modal">
+                <div class="filter-modal-content">
+                    <span class="close-modal">
+                        <i class="fas fa-times"></i>
+                    </span>
+
+                    <h3>Choose Filter Option:</h3>
+                    <div class="filter-buttons">
+                        <a href="?filter=all" class="filter-btn <?php echo ($filter === 'all') ? 'active' : ''; ?>">
+                            <i class="fas fa-th-list"></i> All Goals
+                        </a>
+                        <a href="?filter=in_progress" class="filter-btn <?php echo ($filter === 'in_progress') ? 'active' : ''; ?>">
+                            <i class="fas fa-spinner"></i> In Progress
+                        </a>
+                        <a href="?filter=completed" class="filter-btn <?php echo ($filter === 'completed') ? 'active' : ''; ?>">
+                            <i class="fas fa-check-circle"></i> Completed
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <form method="POST" action="goals.php" class="goals-form">
+                <input type="hidden" name="action" value="update_goals">
+                <?php if ($result->num_rows > 0): ?>
+                    <ul class="goals-list">
+                        <?php while ($goal = $result->fetch_assoc()): ?>
+                            <li id="goal-<?php echo $goal['id_goals']; ?>">
+                                <input type="checkbox" name="goals[]" value="<?php echo $goal['id_goals']; ?>" <?php echo $goal['is_completed'] ? 'checked' : ''; ?>>
+                                <div class="goal_divv">
+                                     <?php echo htmlspecialchars($goal['text']); ?> - <?php echo $goal['is_completed'] ? 'Completed' : 'In Progress'; ?>
+                                    <button class="delete-goal " data-goal-id="<?php echo $goal['id_goals']; ?>"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                               
+                            </li>
+                        <?php endwhile; ?>
+                    </ul>
+                    <button type="submit" class="btn">Update Goals</button>
+                <?php else: ?>
+                    <p class="no-goals-message">There are no goals to display</p>
+                <?php endif; ?>
+            </form>
+        </div>
+
+    </div>
+    
 
     <footer>
         <div class="footer-container">

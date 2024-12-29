@@ -8,7 +8,7 @@
     min-height: 90vh;
 }
 .user-profile {
-    width: 90%;
+    width: 95%;
     font-family: "Crimson Text", serif;
     margin: 20px auto;
     background: #ffffff; 
@@ -94,7 +94,7 @@
     width: 100%;
     align-items: flex-start;
     gap: 18px;
-    margin: 0px 50px;
+    margin: 0px 40px;
 }
 .width_long{
     width: 940px!important;
@@ -201,7 +201,7 @@
     margin-top: 5px;
     font-style: italic;
 }
-@media (max-width: 1430px) {
+@media (max-width: 1390px) {
     .div_divs {
         flex-direction: column;
         justify-content: center;
@@ -751,7 +751,6 @@ textarea {
     border: 2px dashed #ccc;
     padding: 20px;
     width: 70%;
-    height: 200px;
     text-align: left;
     display: flex;
     flex-direction: column;

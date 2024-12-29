@@ -4,14 +4,12 @@ include 'includes/functions.php';
 include 'includes/db.php';
 check_login();
 
-// Handle adding a movie
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_movie') {
     $title = sanitize_input($_POST['title']);
     $description = sanitize_input($_POST['description']);
     $category = sanitize_input($_POST['category']);
     $user_id = $_SESSION['user_id'];
 
-    // Fetch category ID
     $sql = "SELECT id_category FROM categories WHERE Name=?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param('s', $category);
@@ -66,7 +64,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['movie_id'])&&isset($_
             });
             $_SESSION['recent_likes'] = array_values($_SESSION['recent_likes']);
 
-            // Prepare response
             $response = [
                 'success' => true,
                 'recent_likes_count' => count($_SESSION['recent_likes']),
@@ -104,17 +101,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
     $movie_id = intval($_POST['movie_id']);
     $user_id = $_SESSION['user_id'];
 
-    // Start transaction
     $conn->begin_transaction();
 
-    // Check movie ownership
     $check_owner_sql = "SELECT user_id FROM movies WHERE id_movies = ?";
     $check_owner_stmt = $conn->prepare($check_owner_sql);
     $check_owner_stmt->bind_param('i', $movie_id);
     $check_owner_stmt->execute();
     $check_owner_result = $check_owner_stmt->get_result();
 
-    // Check user role
     $check_role_sql = "SELECT Role FROM users WHERE ID_USER = ?";
     $check_role_stmt = $conn->prepare($check_role_sql);
     $check_role_stmt->bind_param('i', $user_id);
@@ -125,30 +119,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
         $owner_row = $check_owner_result->fetch_assoc();
         $role_permission = $check_role_result->fetch_assoc();
 
-        // Check if user has permission to delete the movie
         if ($owner_row['user_id'] == $user_id || $role_permission['Role'] == 'admin') {
-
-            // Delete related reviews
             $delete_reviews_sql = "DELETE FROM reviews WHERE movie_id = ?";
             $delete_reviews_stmt = $conn->prepare($delete_reviews_sql);
             $delete_reviews_stmt->bind_param('i', $movie_id);
             $delete_reviews_success = $delete_reviews_stmt->execute();
 
             if ($delete_reviews_success) {
-                // If reviews deleted successfully, delete the movie
                 $delete_movie_sql = "DELETE FROM movies WHERE id_movies = ?";
                 $delete_movie_stmt = $conn->prepare($delete_movie_sql);
                 $delete_movie_stmt->bind_param('i', $movie_id);
                 if ($delete_movie_stmt->execute()) {
-                    $conn->commit(); // Commit transaction
+                    $conn->commit(); 
                     $response = ['success' => true];
                 } else {
-                    $conn->rollback(); // Rollback transaction on failure
+                    $conn->rollback(); 
                     $response = ['success' => false, 'error' => 'Could not delete the movie.'];
                 }
                 $delete_movie_stmt->close();
             } else {
-                $conn->rollback(); // Rollback transaction on failure to delete reviews
+                $conn->rollback();
                 $response = ['success' => false, 'error' => 'Could not delete associated reviews.'];
             }
             $delete_reviews_stmt->close();
@@ -161,76 +151,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
 
     echo json_encode($response);
 
-    // Close statements and end transaction if not committed
     $check_owner_stmt->close();
     $check_role_stmt->close();
     exit;
 }
 
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && 
-    in_array($_POST['action'], ['rating_1', 'rating_2', 'rating_3', 'rating_4', 'rating_5'])) {
-
-    $movie_id = intval($_POST['movie_id']); 
-    $user_id = intval($_SESSION['user_id']);
-    $rating = intval(substr($_POST['action'], -1));
-    
-    $response = [];
-
-    // Check if a rating already exists for this user and movie
-    $check_sql = "SELECT rating FROM reviews WHERE user_id = ? AND movie_id = ?";
-    $check_stmt = $conn->prepare($check_sql);
-    $check_stmt->bind_param('ii', $user_id, $movie_id);
-    $check_stmt->execute();
-    $check_stmt->store_result();
-
-    if ($check_stmt->num_rows > 0) {
-        // Update the existing rating
-        $update_sql = "UPDATE reviews SET rating = ? WHERE user_id = ? AND movie_id = ?";
-        $update_stmt = $conn->prepare($update_sql);
-        $update_stmt->bind_param('iii', $rating, $user_id, $movie_id);
-
-        if ($update_stmt->execute()) {
-            $response = ['success' => true, 'message' => 'Rating successfully updated!'];
-        } else {
-            $response = ['success' => false, 'error' => 'Error updating rating: ' . $update_stmt->error];
-        }
-
-        $update_stmt->close();
-    } else {
-        // Insert a new rating
-        $insert_sql = "INSERT INTO reviews (user_id, rating, movie_id) VALUES (?, ?, ?)";
-        $insert_stmt = $conn->prepare($insert_sql);
-        $insert_stmt->bind_param('iii', $user_id, $rating, $movie_id);
-
-        if ($insert_stmt->execute()) {
-            $response = ['success' => true, 'message' => 'Rating successfully saved!'];
-        } else {
-            $response = ['success' => false, 'error' => 'Error saving rating: ' . $insert_stmt->error];
-        }
-
-        $insert_stmt->close();
-    }
-
-    // Close the check statement and return JSON response
-    $check_stmt->close();
-    echo json_encode($response);
-    exit;
-}
-
-// Fetch categories
 $sql_categories = "SELECT Name FROM categories";
 $stmt_categories = $conn->prepare($sql_categories);
 $stmt_categories->execute();
 $categories_result = $stmt_categories->get_result();
 $categories = $categories_result->fetch_all(MYSQLI_ASSOC);
 
-// Check if search filters are set
-$movies_per_page = 5;
+$movies_per_page = 6;
 $current_page = isset($_GET['page']) ? intval($_GET['page']) : 1;
 $offset = ($current_page - 1) * $movies_per_page;
 
-// Sanitize and retrieve filter/search variables
 $search_title = isset($_GET['search_title']) ? '%' . sanitize_input($_GET['search_title']) . '%' : null;
 $search_category = isset($_GET['search_category']) && $_GET['search_category'] !== '' ? sanitize_input($_GET['search_category']) : null;
 $filter = isset($_GET['filter']) ? sanitize_input($_GET['filter']) : null;
@@ -247,24 +183,20 @@ $sql = "
 $params = [$_SESSION['user_id']];
 $types = "i"; 
 
-// Add search by title
 if ($search_title) {
     $sql .= " AND movies.Title LIKE ?";
     $params[] = $search_title;
     $types .= "s";
 }
 
-// Add search by category
 if ($search_category) {
     $sql .= " AND categories.Name = ?";
     $params[] = $search_category;
     $types .= "s";
 }
 
-// Group the results
 $sql .= " GROUP BY movies.id_movies";
 
-// Sorting logic
 if ($filter) {
     switch ($filter) {
         case 'az':
@@ -287,7 +219,6 @@ if ($filter) {
     $sql .= " ORDER BY movies.Created_at DESC"; 
 }
 
-// Add LIMIT and OFFSET for pagination
 $sql .= " LIMIT ? OFFSET ?";
 $params[] = $movies_per_page;
 $params[] = $offset;
@@ -298,7 +229,6 @@ $stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
 
-// Fetch total number of movies for pagination calculation
 $total_sql = "
     SELECT COUNT(*) as total 
     FROM movies
@@ -309,14 +239,12 @@ $total_sql = "
 $total_params = [$_SESSION['user_id']];
 $total_types = "i";
 
-// Add search by title
 if ($search_title) {
     $total_sql .= " AND movies.Title LIKE ?";
     $total_params[] = $search_title;
     $total_types .= "s";
 }
 
-// Add search by category
 if ($search_category) {
     $total_sql .= " AND categories.Name = ?";
     $total_params[] = $search_category;
@@ -351,9 +279,10 @@ if (isset($_SESSION['user_id'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Movies</title>
-    <link rel="stylesheet" href="css/style.css">
     <?php include 'includes/fontawesome.php'; ?> 
     <link rel="stylesheet" href="assets/styles/header_footer.css">
+    <link rel="stylesheet" href="assets/styles/movies.css">
+    <?php include 'includes/fontawesome.php'; ?> 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         
@@ -407,107 +336,133 @@ if (isset($_SESSION['user_id'])) {
                 });
                 
             });
-            $('.rating_movie_1').click(function() {
-                var button = $(this);
-                var movieId = button.data('movie-id');
-                $.ajax({
-                    url: 'movies.php',
-                    type: 'POST',
-                    data: { movie_id: movieId,action:'rating_1' },
-                    success: function(response) {
-                        var data = JSON.parse(response);
-                        if (data.success) {
-                            console.log('Success');
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    },
-                    error: function() {
-                        alert('An error occurred while processing your request.');
-                    }
+            $(document).on('mouseenter', '.star-rating span', function () {
+                var star = $(this);
+                var ratingValue = star.data('rating');
+                var tooltip = $('<div class="tooltip"></div>').text(ratingValue.toFixed(2));
+                $('body').append(tooltip);
+
+                $(document).on('mousemove.tooltip', function (e) {
+                    tooltip.css({
+                        left: e.pageX + 15,
+                        top: e.pageY + 15
+                    });
                 });
+
+                tooltip.show();
             });
-            $('.rating_movie_2').click(function() {
-                var button = $(this);
-                var movieId = button.data('movie-id');
+
+            $(document).on('mouseleave', '.star-rating span', function () {
+                $('.tooltip').remove();
+                $(document).off('mousemove.tooltip');
+            });
+
+            $(document).on('click', '.star-rating span', function () {
+                var star = $(this);
+                var itemId = star.closest('.star-rating').data('item-id');
+                var itemType = star.closest('.star-rating').data('item-type');
+                var rating = star.data('rating');
+
                 $.ajax({
-                    url: 'movies.php',
+                    url: 'favourite.php',
                     type: 'POST',
-                    data: { movie_id: movieId,action:'rating_2' },
-                    success: function(response) {
+                    data: {
+                        item_id: itemId,
+                        action: 'rating_' + itemType + '_' + rating,
+                        rating: rating
+                    },
+                    success: function (response) {
                         var data = JSON.parse(response);
                         if (data.success) {
-                            console.log('Success');
+                            console.log('Rating successful');
+                            
+                            var newRating = (data.new_average_rating == 0 || isNaN(data.new_average_rating)) ? rating : parseFloat(data.new_average_rating);
+                            if (isNaN(newRating)) {
+                                newRating = 0;
+                            }
+                            $('p.rating-value[data-item-id="' + itemId + '"]').text(newRating.toFixed(2));
+                            var fullStars = Math.floor(newRating);
+                            var halfStar = (newRating - fullStars >= 0.5);
+                            var starsHtml = '';
+                            for (var i = 1; i <= 5; i++) {
+                                if (i <= fullStars) {
+                                    starsHtml += '<span class="bi bi-star-fill full-star" data-rating="' + i + '" title="Rating: ' + newRating + '"></span>';
+                                } else if (i === fullStars + 1 && halfStar) {
+                                    starsHtml += '<span class="bi bi-star-half star-half" data-rating="' + i + '" title="Rating: ' + newRating + '"></span>';
+                                } else {
+                                    starsHtml += '<span class="bi bi-star empty-star" data-rating="' + i + '" title="Rating: ' + newRating + '"></span>';
+                                }
+                            }
+                            $('.star-rating[data-item-id="' + itemId + '"]').html(starsHtml);
                         } else {
                             alert('Error: ' + data.error);
                         }
                     },
-                    error: function() {
-                        alert('An error occurred while processing your request.');
-                    }
-                });
-            });
-            $('.rating_movie_3').click(function() {
-                var button = $(this);
-                var movieId = button.data('movie-id');
-                $.ajax({
-                    url: 'movies.php',
-                    type: 'POST',
-                    data: { movie_id: movieId,action:'rating_3' },
-                    success: function(response) {
-                        var data = JSON.parse(response);
-                        if (data.success) {
-                            console.log('Success');
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    },
-                    error: function() {
-                        alert('An error occurred while processing your request.');
-                    }
-                });
-            });
-            $('.rating_movie_4').click(function() {
-                var button = $(this);
-                var movieId = button.data('movie-id');
-                $.ajax({
-                    url: 'movies.php',
-                    type: 'POST',
-                    data: { movie_id: movieId,action:'rating_4' },
-                    success: function(response) {
-                        var data = JSON.parse(response);
-                        if (data.success) {
-                            console.log('Success');
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    },
-                    error: function() {
-                        alert('An error occurred while processing your request.');
-                    }
-                });
-            });
-            $('.rating_movie_5').click(function() {
-                var button = $(this);
-                var movieId = button.data('movie-id');
-                $.ajax({
-                    url: 'movies.php',
-                    type: 'POST',
-                    data: { movie_id: movieId,action:'rating_5' },
-                    success: function(response) {
-                        var data = JSON.parse(response);
-                        if (data.success) {
-                            console.log('Success');
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    },
-                    error: function() {
+                    error: function () {
                         alert('An error occurred while processing your request.');
                     }
                 });
             });
 
+
+
+
+            $("#movieModal").hide();
+            $(".add-movie-icon").click(function() {
+                $("#movieModal").fadeIn();
+            });
+            $(".close").click(function() {
+                $("#movieModal").fadeOut();
+            });
+            $(window).click(function(event) {
+                if ($(event.target).is("#movieModal")) {
+                    $("#movieModal").fadeOut();
+                }
+            });
+            
+            const $dragAndDropAreaMovie = $("#drop-area_movie");
+            const $fileInputMovie = $("#image");
+            const $fileNameDisplayMovie = $(".drop-areaName_movie");
+            $dragAndDropAreaMovie.on("click", function () {
+                $fileInputMovie.trigger("click");
+            });
+            $fileInputMovie.on("change", function () {
+                showPreviewMovie(this.files);
+            });
+            $dragAndDropAreaMovie.on("dragover", function (e) {
+                e.preventDefault();
+                $dragAndDropAreaMovie.css("background-color", "#e0e0e0");
+            });
+
+            $dragAndDropAreaMovie.on("dragleave", function () {
+                $dragAndDropAreaMovie.css("background-color", "#f9f9f9");
+            });
+
+            $dragAndDropAreaMovie.on("drop", function (e) {
+                e.preventDefault();
+                $dragAndDropAreaMovie.css("background-color", "#f9f9f9");
+                const files = e.originalEvent.dataTransfer.files;
+                $fileInputMovie[0].files = files; 
+                showPreviewMovie(files);
+            });
+
+            function showPreviewMovie(files) {
+                $dragAndDropAreaMovie.empty(); 
+                $fileNameDisplayMovie.empty(); 
+                if (files.length) {
+                    const file = files[0];
+                    $fileNameDisplayMovie.text(`Selected File: ${file.name}`);
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const $img = $("<img>").attr("src", e.target.result);
+                        $dragAndDropAreaMovie.append($img);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    $dragAndDropAreaMovie.html("<p>No file chosen</p>");
+                    $fileNameDisplayMovie.text("");
+                }
+            }
         });
     </script>
 </head>
@@ -581,108 +536,142 @@ if (isset($_SESSION['user_id'])) {
             </div>
         </nav>
     </header>
-    <h2>Your Movies</h2>
-    <form method="POST" action="movies.php" enctype="multipart/form-data"> 
-        <input type="hidden" name="action" value="add_movie">
-        
-        <label for="title">Title:</label>
-        <input type="text" name="title" required>
+    <div id="movieModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeModal">&times;</span>
+            <div class="form-container">
+                <h3>Create New Movie</h3>
+                <form method="POST" action="movies.php" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="add_movie">
 
-        <label for="description">Description:</label>
-        <textarea name="description" required></textarea>
+                    <div class="form-group">
+                        <label for="title">Title:</label>
+                        <input type="text" name="title" required>
+                    </div>
 
-        <label for="category">Category:</label>
-        <select name="category" required>
-            <option value="">Select a category</option>
-            <?php foreach ($categories as $category): ?>
-                <option value="<?php echo htmlspecialchars($category['Name']); ?>"><?php echo htmlspecialchars($category['Name']); ?></option>
-            <?php endforeach; ?>
-        </select>
+                    <div class="form-group">
+                        <label for="description">Description:</label>
+                        <textarea name="description" required></textarea>
+                    </div>
 
-        <label for="image">Image</label>
-        <input type="file" id="image" name="image" accept="image/*" required>
-        
-        <button type="submit">Add Movie</button>
-    </form>
-    <h3>Movie List</h3>
-    <!-- Filter and Sort Form -->
-    <h3>Search Movies</h3>
-<form method="GET" action="">
-    <label for="search_title">Title:</label>
-    <input type="text" name="search_title" placeholder="Enter part of the title" value="<?php echo htmlspecialchars($_GET['search_title'] ?? ''); ?>">
+                    <div class="form-group">
+                        <label for="category">Category:</label>
+                        <select name="category" required>
+                            <option value="">Select a category</option>
+                            <?php foreach ($categories as $category): ?>
+                                <option value="<?php echo htmlspecialchars($category['Name']); ?>">
+                                    <?php echo htmlspecialchars($category['Name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
 
-    <label for="search_category">Category:</label>
-    <select name="search_category">
-        <option value="">Select a category</option>
-        <?php foreach ($categories as $category): ?>
-            <option value="<?php echo htmlspecialchars($category['Name']); ?>" 
-                <?php echo (isset($_GET['search_category']) && $_GET['search_category'] === htmlspecialchars($category['Name'])) ? 'selected' : ''; ?>>
-                <?php echo htmlspecialchars($category['Name']); ?>
-            </option>
-        <?php endforeach; ?>
-    </select>
+                    <div class="form-group col">
+                        <label for="image">Image:</label>
+                        <div id="drop-area_movie" class="drop-area">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <p>Drag & Drop an image here to upload</p>
+                        </div>
+                        <input type="file" id="image" name="image" accept="image/*" required style="display:none;">
+                        <div class="drop-areaName_movie" style="margin-top: 5px; font-size: 14px; color: #555;"></div>
+                    </div>
 
-    <label for="filter">Sort By:</label>
-    <select name="filter">
-        <option value="">Select sorting option</option>
-        <option value="az" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'az') ? 'selected' : ''; ?>>Title (A-Z)</option>
-        <option value="za" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'za') ? 'selected' : ''; ?>>Title (Z-A)</option>
-        <option value="newest" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'newest') ? 'selected' : ''; ?>>Newest First</option>
-        <option value="oldest" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'oldest') ? 'selected' : ''; ?>>Oldest First</option>
-    </select>
-    
-    <button type="submit">Search</button>
-</form>
+                    <button type="submit" class="btn">Add Movie</button>
+                </form>
+            </div>
+        </div>
+    </div>
 
-<!-- Display Selected Search Criteria -->
-<?php if (isset($_GET['search_title']) || (isset($_GET['search_category']) && $_GET['search_category'] !== '') || isset($_GET['filter'])): ?>
-    <p><strong>Currently Viewing:</strong>
-        <?php if (isset($_GET['search_title']) && $_GET['search_title'] !== ''): ?>
-            Title containing "<em><?php echo htmlspecialchars($_GET['search_title']); ?></em>"
-        <?php endif; ?>
-        <?php if (isset($_GET['search_category']) && $_GET['search_category'] !== ''): ?>
-            <?php echo isset($_GET['search_title']) && $_GET['search_title'] !== '' ? ' and ' : ''; ?>
-            Category "<em><?php echo htmlspecialchars($_GET['search_category']); ?></em>"
-        <?php endif; ?>
-        <?php if (isset($_GET['filter'])): ?>
-            <?php
-            if (isset($_GET['search_title']) || isset($_GET['search_category'])) {
-                echo ' sorted by ';
-            }
-            switch ($_GET['filter']) {
-                case 'az':
-                    echo 'Title (A-Z)';
-                    break;
-                case 'za':
-                    echo 'Title (Z-A)';
-                    break;
-                case 'newest':
-                    echo 'Newest First';
-                    break;
-                case 'oldest':
-                    echo 'Oldest First';
-                    break;
-                default:
-                    break;
-            }
-            ?>
-        <?php endif; ?>
-    </p>
-<?php endif; ?>
+    <div class="filter-section">
+        <form method="GET" action="" class="filter-div">
+            <div class="filter-field">
+                <label for="search_title">Title:</label>
+                <input type="text" name="search_title" placeholder="Enter part of the title" 
+                    value="<?php echo htmlspecialchars($_GET['search_title'] ?? ''); ?>">
+            </div>
 
+            <div class="filter-field">
+                <label for="search_category">Category:</label>
+                <select name="search_category">
+                    <option value="">Select a category</option>
+                    <?php foreach ($categories as $category): ?>
+                        <option value="<?php echo htmlspecialchars($category['Name']); ?>" 
+                            <?php echo (isset($_GET['search_category']) && $_GET['search_category'] === htmlspecialchars($category['Name'])) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($category['Name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="filter-field">
+                <label for="filter">Sort By:</label>
+                <select name="filter">
+                    <option value="">Select sorting option</option>
+                    <option value="az" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'az') ? 'selected' : ''; ?>>Title (A-Z)</option>
+                    <option value="za" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'za') ? 'selected' : ''; ?>>Title (Z-A)</option>
+                    <option value="newest" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'newest') ? 'selected' : ''; ?>>Newest First</option>
+                    <option value="oldest" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'oldest') ? 'selected' : ''; ?>>Oldest First</option>
+                </select>
+            </div>
+            <div class="filter-field">
+                <button type="submit" class="btn">Search</button>
+            </div>
+        </form>
 
+        <button class="add-movie-icon btn add_movie" style="min-width:120px;" id="addMovieBtn"> Add Movie</button>
 
-    <ul>
-        <?php while ($movie = $result->fetch_assoc()): ?>
-            <li>
-                <strong><?php echo htmlspecialchars($movie['Title']); ?></strong><br>
-                <?php echo htmlspecialchars($movie['Description']); ?><br>
+    </div>
+    <?php if (isset($_GET['search_title']) || (isset($_GET['search_category']) && $_GET['search_category'] !== '') || isset($_GET['filter'])): ?>
+        <div class="currently-viewing-container">
+            <p><strong>Currently Viewing:</strong>
+                <?php if (isset($_GET['search_title']) && $_GET['search_title'] !== ''): ?>
+                    Title containing "<em><?php echo htmlspecialchars($_GET['search_title']); ?></em>"
+                <?php endif; ?>
+                <?php if (isset($_GET['search_category']) && $_GET['search_category'] !== ''): ?>
+                    <?php echo isset($_GET['search_title']) && $_GET['search_title'] !== '' ? ' and ' : ''; ?>
+                    Category "<em><?php echo htmlspecialchars($_GET['search_category']); ?></em>"
+                <?php endif; ?>
+                <?php if (isset($_GET['filter'])): ?>
+                    <?php
+                    if (isset($_GET['search_title']) || isset($_GET['search_category'])) {
+                        echo ' sorted by ';
+                    }
+                    switch ($_GET['filter']) {
+                        case 'az':
+                            echo 'Title (A-Z)';
+                            break;
+                        case 'za':
+                            echo 'Title (Z-A)';
+                            break;
+                        case 'newest':
+                            echo 'Newest First';
+                            break;
+                        case 'oldest':
+                            echo 'Oldest First';
+                            break;
+                        default:
+                            break;
+                    }
+                    ?>
+                <?php endif; ?>
+            </p>
+        </div>
+    <?php endif; ?>
+    <ul class="movie-gallery">
+    <?php while ($movie = $result->fetch_assoc()): ?>
+        <li class="movie-item">
+            <div class="movie-image-container">
                 <?php if (!empty($movie['image_link'])): ?>
-                    <img src="<?php echo htmlspecialchars($movie['image_link']); ?>" alt="Movie Image" style="width:50px;height:auto;">
-                <?php endif; ?><br>
+                    <img class="movie-image" src="<?php echo htmlspecialchars($movie['image_link']); ?>" alt="Movie Image">
+                <?php endif; ?>
+                <div class="movie-overlay">
+                    <strong><?php echo htmlspecialchars($movie['Title']); ?></strong><br>
+                    <p><?php echo htmlspecialchars($movie['Description']); ?></p>
+                </div>
+            </div>
+            
+            <div class="movie-actions">
                 <button class="toggle_favourite" data-movie-id="<?php echo $movie['id_movies']; ?>">
                     <?php 
-                        // Check if the user has liked the movie
                         $check_like_sql = "SELECT * FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?";
                         $check_stmt = $conn->prepare($check_like_sql);
                         $item_type = "movie";
@@ -694,18 +683,39 @@ if (isset($_SESSION['user_id'])) {
                     ?>
                 </button>
                 <button class="delete_movie_from_db" data-movie-id="<?php echo $movie['id_movies']; ?>">Delete</button>
-                <button class="rating_movie_1" data-movie-id="<?php echo $movie['id_movies']; ?>">1</button>
-                <button class="rating_movie_2" data-movie-id="<?php echo $movie['id_movies']; ?>">2</button>
-                <button class="rating_movie_3" data-movie-id="<?php echo $movie['id_movies']; ?>">3</button>
-                <button class="rating_movie_4" data-movie-id="<?php echo $movie['id_movies']; ?>">4</button>
-                <button class="rating_movie_5" data-movie-id="<?php echo $movie['id_movies']; ?>">5</button>
-                <?php echo number_format($movie['average_rating'], 2); ?>
-            </li>
-        <?php endwhile; ?>
-    </ul>
+                
+                <div class="star-rating" data-item-id="<?php echo $movie['id_movies']; ?>" data-item-type="movie">
+                <?php 
+                    $rating = isset($movie['average_rating']) ? $movie['average_rating'] : 0;
+                    if ($rating == 0) {
+                        $rating = 0; 
+                    }
+                    $fullStars = floor($rating);
+                    $halfStar = ($rating - $fullStars >= 0.5);
+                    for ($i = 1; $i <= 5; $i++) {
+                        if ($i <= $fullStars) {
+                            echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                        } elseif ($i == $fullStars + 1 && $halfStar) {
+                            echo '<span class="bi bi-star-half star-half" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                        } else {
+                            echo '<span class="bi bi-star empty-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                        }
+                    }
+                ?>
+                </div>
+                <p class="rating-value" data-item-id="<?php echo $movie['id_movies']; ?>" data-item-type="movie">
+                    <?php echo number_format($movie['average_rating'], 2); ?>
+                </p>
 
-    <!-- Pagination Links -->
-    <div class="pagination">
+            </div>
+        </li>
+    <?php endwhile; ?>
+</ul>
+
+
+
+
+    <div class="pagination-container">
         <?php if ($total_pages > 1): ?>
             <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                 <a href="?page=<?php echo $i; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>" <?php if ($i == $current_page) echo 'class="active"'; ?>><?php echo $i; ?></a>
@@ -732,5 +742,6 @@ if (isset($_SESSION['user_id'])) {
     </footer>
 
 <script src="assets/js/header_footer.js"></script>
+
 </body>
 </html>

@@ -4,7 +4,6 @@ include 'includes/functions.php';
 include 'includes/db.php';
 check_login();
 
-// Fetch liked recipe IDs
 $sql_recipes = "SELECT item_id FROM likes WHERE user_id = ? AND item_type=?";
 $stmt_recipes = $conn->prepare($sql_recipes);
 $user_id = $_SESSION['user_id'];
@@ -21,8 +20,7 @@ while ($row = $result_recipes->fetch_assoc()) {
 $recipes = [];
 if (!empty($recipe_ids)) {
     $placeholders = implode(',', array_fill(0, count($recipe_ids), '?'));
-    
-    // Modified SQL query to fetch recipes with average rating
+
     $sql_details = "
         SELECT recipes.*, 
                COALESCE(AVG(reviews.rating), 0) AS average_rating,
@@ -47,7 +45,6 @@ if (!empty($recipe_ids)) {
     }
 }
 
-// Fetch liked books
 $sql_books = "SELECT item_id FROM likes WHERE user_id = ? AND item_type=?";
 $stmt_books = $conn->prepare($sql_books);
 $item_type = "book";
@@ -63,8 +60,7 @@ while ($row = $result_books->fetch_assoc()) {
 $books = [];
 if (!empty($book_ids)) {
     $placeholders = implode(',', array_fill(0, count($book_ids), '?'));
-    
-    // Modified SQL query to fetch books with average rating
+
     $sql_book_details = "
         SELECT books.*, 
                COALESCE(AVG(reviews.rating), 0) AS average_rating,
@@ -89,7 +85,6 @@ if (!empty($book_ids)) {
     }
 }
 
-// Fetch liked movies
 $sql_movies = "SELECT item_id FROM likes WHERE user_id = ? AND item_type=?";
 $stmt_movies = $conn->prepare($sql_movies);
 $item_type = "movie";
@@ -105,8 +100,6 @@ while ($row = $result_movies->fetch_assoc()) {
 $movies = [];
 if (!empty($movie_ids)) {
     $placeholders = implode(',', array_fill(0, count($movie_ids), '?'));
-
-    // Modified SQL query to fetch movies with average rating
     $sql_movie_details = "
         SELECT movies.*, 
                COALESCE(AVG(reviews.rating), 0) AS average_rating,
@@ -153,8 +146,6 @@ if (isset($_POST['item_id']) && isset($_POST['item_type'])) {
                 return !($like['item_id'] == $item_id && $like['item_type'] == $item_type);
             });
             $_SESSION['recent_likes'] = array_values($_SESSION['recent_likes']);
-
-            // Prepare response
             $response = [
                 'success' => true,
                 'recent_likes_count' => count($_SESSION['recent_likes'])
@@ -172,13 +163,11 @@ if (isset($_POST['item_id']) && isset($_POST['item_type'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
-    // Extract the item type and ID dynamically
-    $item_type = $_POST['action']; // This will be 'rating_movie_X', 'rating_recipe_X', or 'rating_book_X'
+    $item_type = $_POST['action']; 
     $item_id = intval($_POST['item_id']);
     $user_id = intval($_SESSION['user_id']);
-    $rating = intval(substr($item_type, -1)); // Extract the rating number from the action string
+    $rating = intval(substr($item_type, -1)); 
 
-    // Define the correct table and column names based on the item type
     if (strpos($item_type, 'movie') !== false) {
         $table = 'reviews';
         $column = 'movie_id';
@@ -189,8 +178,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
         $table = 'reviews';
         $column = 'id_book';
     }
-
-    // Check if the rating already exists
     $check_sql = "SELECT rating FROM $table WHERE user_id = ? AND $column = ?";
     $check_stmt = $conn->prepare($check_sql);
     $check_stmt->bind_param('ii', $user_id, $item_id);
@@ -198,7 +185,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     $check_stmt->store_result();
 
     if ($check_stmt->num_rows > 0) {
-        // Update the existing rating
         $update_sql = "UPDATE $table SET rating = ? WHERE user_id = ? AND $column = ?";
         $update_stmt = $conn->prepare($update_sql);
         $update_stmt->bind_param('iii', $rating, $user_id, $item_id);
@@ -219,7 +205,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
 
         $update_stmt->close();
     } else {
-        // Insert the new rating
         $insert_sql = "INSERT INTO $table (user_id, rating, $column) VALUES (?, ?, ?)";
         $insert_stmt = $conn->prepare($insert_sql);
         $insert_stmt->bind_param('iii', $user_id, $rating, $item_id);
@@ -314,6 +299,7 @@ if (isset($_SESSION['user_id'])) {
             var rating = star.data('rating');
 
             var action = 'rating_' + itemType + '_' + rating;
+            
             $.ajax({
                 url: 'favourite.php',
                 type: 'POST',
@@ -326,9 +312,8 @@ if (isset($_SESSION['user_id'])) {
                     var data = JSON.parse(response);
                     if (data.success) {
                         console.log('Success');
-                        var newRating = parseFloat(data.new_average_rating);
+                        var newRating = (isNaN(data.new_average_rating) || data.new_average_rating === 0) ? rating : parseFloat(data.new_average_rating);
                         $('p.rating-value[data-item-id="' + itemId + '"][data-item-type="' + itemType + '"]').text(newRating.toFixed(2));
-
                         var fullStars = Math.floor(newRating);
                         var halfStar = (newRating - fullStars >= 0.5);
                         var emptyStars = 5 - fullStars - (halfStar ? 1 : 0); 
@@ -337,15 +322,12 @@ if (isset($_SESSION['user_id'])) {
                         for (var i = 0; i < fullStars; i++) {
                             starsHtml += '<span class="bi bi-star-fill full-star" data-rating="' + (i + 1) + '" title="Rating: ' + newRating + '"></span>';
                         }
-
                         if (halfStar) {
                             starsHtml += '<span class="bi bi-star-half star-half" data-rating="' + (fullStars + 1) + '" title="Rating: ' + newRating + '"></span>';
                         }
-
                         for (var i = 0; i < emptyStars; i++) {
                             starsHtml += '<span class="bi bi-star empty-star" data-rating="' + (fullStars + halfStar + i + 1) + '" title="Rating: ' + newRating + '"></span>';
                         }
-
                         $('.star-rating[data-item-id="' + itemId + '"][data-item-type="' + itemType + '"]').html(starsHtml);
                         $('.star-rating[data-item-id="' + itemId + '"][data-item-type="' + itemType + '"]').addClass('clicked');
                     } else {
@@ -357,8 +339,6 @@ if (isset($_SESSION['user_id'])) {
                 }
             });
         });
-
-
 
         });
     </script>
@@ -460,15 +440,10 @@ if (isset($_SESSION['user_id'])) {
             </li>
         </ul>
     </div>
-
-    <!-- Content Area -->
     <div class="content-area">
         <?php 
-        // Default section
         $section = $_GET['section'] ?? 'recent_likes'; 
         $default_image = 'assets/fakers/no-image.jpg';
-
-        // Render Section
         if ($section == 'recent_likes') {
             echo '<div class="favorites-section recent-likes-section">
                   <h3>Recent Likes: <span id="recent_likes_count">' . count($_SESSION['recent_likes']) . '</span></h3>';
@@ -515,33 +490,39 @@ if (isset($_SESSION['user_id'])) {
                 echo '<ul class="item-list movies-list">';
                 foreach ($movies as $movie) {
                     $image = $movie['image_link'] ?: $default_image;
+                    $rating = isset($movie['average_rating']) && $movie['average_rating'] > 0 ? $movie['average_rating'] : 0;
+                    $fullStars = floor($rating);
+                    $halfStar = ($rating - $fullStars >= 0.5);
+                    $emptyStars = 5 - $fullStars - ($halfStar ? 1 : 0);
+                
                     echo '<li class="favorite-item">
-                            <img src="' . $image . '" alt="Movie Image" data-item-id="'.$movie['id_movies'].'"class="item-image">
+                            <img src="' . $image . '" alt="Movie Image" data-item-id="'.$movie['id_movies'].'" class="item-image">
                             <div class="fffff">
-                            <p class="item-title">' . htmlspecialchars($movie['Title']) . '</p>
-                            <p class="item-category">' . htmlspecialchars($movie['category_name']) . '</p>
+                                <p class="item-title">' . htmlspecialchars($movie['Title']) . '</p>
+                                <p class="item-category">' . htmlspecialchars($movie['category_name']) . '</p>
                             </div>
                             <div class="average-rating">
                                 <div class="star-rating" data-item-id="' . $movie['id_movies'] . '" data-item-type="movie">';
-                    $rating = $movie['average_rating'];
-                    $fullStars = floor($rating);
-                    $halfStar = ($rating - $fullStars >= 0.5);
-                    for ($i = 1; $i <= 5; $i++) {
-                        if ($i <= $fullStars) {
-                            echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                        } elseif ($i == $fullStars + 1 && $halfStar) {
-                            echo '<span class="bi bi-star-half star-half" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                        } else {
-                            echo '<span class="bi bi-star empty-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                        }
+
+                    for ($i = 1; $i <= $fullStars; $i++) {
+                        echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
                     }
-                    echo '</div>
-                          </div>
-                          <button class="like_delete_item" data-item-id="' . $movie['id_movies'] . '" data-item-type="movie">
-                              <i class="fas fa-trash"></i>
-                          </button>
+                
+                    if ($halfStar) {
+                        echo '<span class="bi bi-star-half star-half" data-rating="' . ($fullStars + 1) . '" title="Rating: ' . $rating . '"></span>';
+                    }
+                    for ($i = 0; $i < $emptyStars; $i++) {
+                        echo '<span class="bi bi-star empty-star" data-rating="' . ($fullStars + $halfStar + $i + 1) . '" title="Rating: ' . $rating . '"></span>';
+                    }
+                
+                    echo '   </div>
+                            </div>
+                            <button class="like_delete_item" data-item-id="' . $movie['id_movies'] . '" data-item-type="movie">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </li>';
                 }
+                
                 echo '</ul>';
             }
             echo '</div>';
@@ -553,28 +534,22 @@ if (isset($_SESSION['user_id'])) {
             } else {
                 echo '<ul class="item-list books-list">';
                 foreach ($books as $book) {
-                    // Set default image if not available
                     $image = $book['image_link'] ?: $default_image;
                     echo '<li class="favorite-item">
                             <img src="' . $image . '" alt="Book Image" class="item-image">
                             <div class="fffff">
                                 <p class="item-title">' . htmlspecialchars($book['title']) . '</p>';
                     
-                    // If category exists, display it (like in movies section)
                     if (!empty($book['author'])) {
                         echo '<p class="item-category">' . htmlspecialchars($book['author']) . '</p>';
                     }
-        
+                
                     echo '</div>
                             <div class="average-rating">
                                 <div class="star-rating" data-item-id="' . $book['id'] . '" data-item-type="book">';
-                    
-                    // Calculate and display stars based on rating
-                    $rating = $book['average_rating'];
+                    $rating = isset($book['average_rating']) ? $book['average_rating'] : 0;
                     $fullStars = floor($rating);
                     $halfStar = ($rating - $fullStars >= 0.5);
-        
-                    // Generate star rating display
                     for ($i = 1; $i <= 5; $i++) {
                         if ($i <= $fullStars) {
                             echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
@@ -584,7 +559,7 @@ if (isset($_SESSION['user_id'])) {
                             echo '<span class="bi bi-star empty-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
                         }
                     }
-        
+                
                     echo '</div>
                             </div>
                             <button class="like_delete_item" data-item-id="' . $book['id'] . '" data-item-type="book">
@@ -592,6 +567,7 @@ if (isset($_SESSION['user_id'])) {
                             </button>
                         </li>';
                 }
+                
                 echo '</ul>';
             }
             echo '</div>';
@@ -602,40 +578,45 @@ if (isset($_SESSION['user_id'])) {
                 echo '<div class="no-items-message">No elements to be displayed</div>';
             } else {
                 echo '<ul class="item-list recipes-list">';
-                    foreach ($recipes as $recipe) {
-                        // Set default image if not available
-                        $image = $recipe['image_link'] ?: $default_image;
-                        echo '<li class="favorite-item">
-                                <img src="' . $image . '" alt="Recipe Image" class="item-image">
-                                <div class="fffff">
-                                    <p class="item-title">' . htmlspecialchars($recipe['title']) . '</p>';
-                        // Add category display if category is available
-                        if (!empty($recipe['created_at'])) {
-                            echo '<p class="item-category created_at_item">' . htmlspecialchars($recipe['created_at']) . '</p>';
-                        }
-                        echo '</div>
-                                <div class="average-rating">
-                                    <div class="star-rating" data-item-id="' . $recipe['id_recipes'] . '" data-item-type="recipe">';
-                        $rating = $recipe['average_rating'];
-                        $fullStars = floor($rating);
-                        $halfStar = ($rating - $fullStars >= 0.5);
-                        // Display rating stars
-                        for ($i = 1; $i <= 5; $i++) {
-                            if ($i <= $fullStars) {
-                                echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                            } elseif ($i == $fullStars + 1 && $halfStar) {
-                                echo '<span class="bi bi-star-half star-half" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                            } else {
-                                echo '<span class="bi bi-star empty-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                            }
-                        }
-                        echo '</div>
-                                </div>
-                                <button class="like_delete_item" data-item-id="' . $recipe['id_recipes'] . '" data-item-type="recipe">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </li>';
+                foreach ($recipes as $recipe) {
+                    $image = $recipe['image_link'] ?: $default_image;
+                
+                    echo '<li class="favorite-item">
+                            <img src="' . $image . '" alt="Recipe Image" class="item-image">
+                            <div class="fffff">
+                                <p class="item-title">' . htmlspecialchars($recipe['title']) . '</p>';
+                
+                    if (!empty($recipe['created_at'])) {
+                        echo '<p class="item-category created_at_item">' . htmlspecialchars($recipe['created_at']) . '</p>';
                     }
+                
+                    echo '</div>
+                            <div class="average-rating">
+                                <div class="star-rating" data-item-id="' . $recipe['id_recipes'] . '" data-item-type="recipe">';
+                
+                    $rating = isset($recipe['average_rating']) ? $recipe['average_rating'] : 0;
+                
+                    $fullStars = floor($rating);
+                    $halfStar = ($rating - $fullStars >= 0.5);
+                
+                    for ($i = 1; $i <= 5; $i++) {
+                        if ($i <= $fullStars) {
+                            echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                        } elseif ($i == $fullStars + 1 && $halfStar) {
+                            echo '<span class="bi bi-star-half star-half" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                        } else {
+                            echo '<span class="bi bi-star empty-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                        }
+                    }
+                
+                    echo '</div>
+                            </div>
+                            <button class="like_delete_item" data-item-id="' . $recipe['id_recipes'] . '" data-item-type="recipe">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </li>';
+                }
+                
                     echo '</ul>';
             }
             echo '</div>';
