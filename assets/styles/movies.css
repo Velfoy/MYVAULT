@@ -50,66 +50,66 @@
     color: white;
     border-color: black;
 } */
- /* Container for gallery */
-/* Container for gallery */
 .movie-gallery {
     display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 3 items per row */
-    gap: 20px; /* space between items */
+    grid-template-columns: repeat(4, 1fr); /* Default: 4 items per row */
+    gap: 20px; /* Space between items */
     padding: 20px;
     list-style: none;
     margin: 0;
+    justify-content: center; /* Center the grid */
 }
 
 /* Each movie item */
 .movie-item {
     position: relative;
-    overflow: hidden;
     background-color: #fff;
     border-radius: 8px;
     box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease-in-out;
+    overflow: hidden;
+    width: 18rem; /* Default poster width */
+    max-width: 100%;
+    aspect-ratio: 27 / 40; /* Maintain movie poster aspect ratio */
 }
 
 /* Movie image container */
 .movie-image-container {
-    position: relative;
-    overflow: hidden;
     width: 100%;
-    height: 300px;  /* Set a fixed height for all images */
+    height: 100%;
+    position: relative;
 }
 
 /* Movie image */
 .movie-image {
     width: 100%;
-    height: 100%; /* Ensures the image covers the fixed height */
-    object-fit: cover; /* Ensures the image covers the entire container while maintaining its aspect ratio */
+    height: 100%;
+    object-fit: cover;
     transition: transform 0.3s ease-in-out, filter 0.3s ease;
 }
 
 /* Hover effect on movie image */
 .movie-item:hover .movie-image {
-    transform: scale(1.1); /* Zoom in effect */
-    filter: blur(4px); /* Blur on hover */
+    transform: scale(1.05); /* Slight zoom effect */
 }
 
-/* Overlay for additional info on image hover */
+/* Overlay for buttons and details */
 .movie-overlay {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.7); /* Transparent black background */
+    background-color: rgba(0, 0, 0, 0.85); /* Slightly darker background */
     color: white;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: space-between; /* Space items evenly */
     align-items: center;
+    padding: 20px;
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
     text-align: center;
-    padding: 10px;
 }
 
 /* Show overlay on hover */
@@ -117,49 +117,108 @@
     opacity: 1;
 }
 
-/* Movie action buttons below image */
+/* Actions and rating inside overlay */
 .movie-actions {
-    padding: 10px;
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
 }
 
-/* Rating buttons layout */
-.rating-buttons button {
-    margin-right: 5px;
-}
-
-/* Style for the favourite and delete buttons */
 .movie-actions button {
     background-color: transparent;
-    border: 1px solid #555;
+    border: 1px solid #fff;
     border-radius: 8px;
-    padding: 5px 10px;
-    font-size: 14px;
+    padding: 8px 12px;
+    font-size: 15px;
     cursor: pointer;
     transition: all 0.3s ease;
+    color: white;
 }
 
 .movie-actions button:hover {
-    background-color: #555;
-    color: white;
-    border-color: #555;
+    background-color: #fff;
+    color: black;
 }
 
-.average-rating {
+.star-rating span {
+    margin: 3px;
+    color: gold;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* Average rating */
+.rating-value {
     font-weight: bold;
     margin-top: 10px;
+    font-size: 16px;
 }
-@media (max-width: 768px) {
+
+/* RESPONSIVE DESIGN */
+
+/* Tablets */
+@media (max-width: 1224px) {
     .movie-gallery {
-        grid-template-columns: repeat(2, 1fr); 
+        grid-template-columns: repeat(3, 1fr); /* Reduce to 3 items per row */
+    }
+
+    .movie-item {
+        width: 16rem; /* Slightly smaller for tablets */
     }
 }
 
-@media (max-width: 480px) {
+/* Small tablets or larger phones */
+@media (max-width: 800px) {
     .movie-gallery {
-        grid-template-columns: 1fr; 
+        grid-template-columns: repeat(2, 1fr); /* Reduce to 2 items per row */
+    }
+
+    .movie-item {
+        width: 15rem; /* Shrink the poster size further */
     }
 }
+
+/* Phones */
+@media (max-width: 530px) {
+    .movie-gallery {
+        grid-template-columns: 1fr; /* Single-column layout */
+        gap: 15px; /* Smaller gap for a more compact view */
+    }
+
+    .movie-item {
+        width: 90%; /* Reduce poster width to 90% of the container */
+        margin: 10px auto; /* Center the items horizontally */
+        aspect-ratio: 27 / 40; /* Maintain aspect ratio for movie poster */
+        max-width: 18rem; /* Limit the width to a max size to prevent it from getting too large */
+    }
+
+    /* Movie Image */
+    .movie-image {
+        height: auto; /* Allow poster image to scale with the reduced width */
+    }
+
+    .movie-actions {
+        gap: 12px; /* Reduce gap between buttons and elements inside the overlay */
+        width: 100%;
+    }
+
+    .movie-actions button {
+        font-size: 13px; /* Reduce button font size */
+        padding: 5px 8px; /* Slightly smaller buttons for better fit on small screens */
+    }
+
+    .star-rating span {
+        font-size: 16px; /* Further reduce star sizes */
+    }
+
+    .rating-value {
+        font-size: 13px; /* Smaller rating text */
+    }
+}
+
+
+
 
 
 .bi {
@@ -209,8 +268,9 @@
     background-color: rgba(0, 0, 0, 0.05); 
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); 
     width: 100%;
+    flex-wrap: wrap;
 }
-.add_movie{
+.add_book{
     margin-left: auto;
 }
 .currently-viewing-container{
@@ -290,7 +350,7 @@
         flex-direction: column;
         justify-content: center;
     }
-    .add_movie{
+    .add_book{
         margin: 0 20px;
         margin-bottom: 20px;
     }
@@ -349,21 +409,31 @@
     border-color: black;
 }
 
-/* Pagination */
 .pagination-container {
     text-align: center;
-    margin: 20px 0;
+    margin:0;
+    margin-bottom: 10px;
+}
+
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px; 
+    padding: 10px 0;
+    font-size: 12px; 
 }
 
 .pagination-container a {
-    padding: 8px 12px;
-    margin: 0 5px;
+    padding: 5px 10px;
+    margin: 0 3px; 
     color: black;
     text-decoration: none;
     border: 1px solid #dcdcdc;
     border-radius: 4px;
     background-color: rgba(255, 255, 255, 0.8);
     transition: all 0.3s ease;
+    font-size: 12px; 
 }
 
 .pagination-container a:hover {
@@ -376,6 +446,26 @@
     background-color: black;
     color: white;
     border-color: black;
+}
+
+@media (max-width: 768px) {
+    .pagination-container {
+        gap: 3px;
+    }
+    .pagination-container a {
+        padding: 4px 8px; 
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .pagination-container {
+        gap: 2px; 
+    }
+    .pagination-container a {
+        padding: 3px 6px; 
+        font-size: 10px; 
+    }
 }
 
 .modal {
@@ -580,5 +670,18 @@
     .admin_header{
         font-size: 1.5rem;
         gap: 15px;
+    }
+}
+.min_height_div{
+    min-height: 80vh;
+}
+@media (max-width: 768px) {
+    .min_height_div {
+        min-height: 70vh;
+    }
+}
+@media (max-width: 480px) {
+    .min_height_div {
+        min-height: 80vh;
     }
 }

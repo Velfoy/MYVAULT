@@ -163,7 +163,7 @@ $stmt_categories->execute();
 $categories_result = $stmt_categories->get_result();
 $categories = $categories_result->fetch_all(MYSQLI_ASSOC);
 
-$movies_per_page = 6;
+$movies_per_page = 8;
 $current_page = isset($_GET['page']) ? intval($_GET['page']) : 1;
 $offset = ($current_page - 1) * $movies_per_page;
 
@@ -380,7 +380,7 @@ if (isset($_SESSION['user_id'])) {
                             if (isNaN(newRating)) {
                                 newRating = 0;
                             }
-                            $('p.rating-value[data-item-id="' + itemId + '"]').text(newRating.toFixed(2));
+                            $('p.rating-value[data-item-id="' + itemId + '"]').text(" Average Rating: "+newRating.toFixed(2));
                             var fullStars = Math.floor(newRating);
                             var halfStar = (newRating - fullStars >= 0.5);
                             var starsHtml = '';
@@ -582,146 +582,178 @@ if (isset($_SESSION['user_id'])) {
         </div>
     </div>
 
-    <div class="filter-section">
-        <form method="GET" action="" class="filter-div">
-            <div class="filter-field">
-                <label for="search_title">Title:</label>
-                <input type="text" name="search_title" placeholder="Enter part of the title" 
-                    value="<?php echo htmlspecialchars($_GET['search_title'] ?? ''); ?>">
-            </div>
+    <div class="min_height_div">
+        <div class="filter-section">
+            <form method="GET" action="" class="filter-div">
+                <div class="filter-field">
+                    <label for="search_title">Title:</label>
+                    <input type="text" name="search_title" placeholder="Enter part of the title" 
+                        value="<?php echo htmlspecialchars($_GET['search_title'] ?? ''); ?>">
+                </div>
 
-            <div class="filter-field">
-                <label for="search_category">Category:</label>
-                <select name="search_category">
-                    <option value="">Select a category</option>
-                    <?php foreach ($categories as $category): ?>
-                        <option value="<?php echo htmlspecialchars($category['Name']); ?>" 
-                            <?php echo (isset($_GET['search_category']) && $_GET['search_category'] === htmlspecialchars($category['Name'])) ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($category['Name']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="filter-field">
-                <label for="filter">Sort By:</label>
-                <select name="filter">
-                    <option value="">Select sorting option</option>
-                    <option value="az" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'az') ? 'selected' : ''; ?>>Title (A-Z)</option>
-                    <option value="za" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'za') ? 'selected' : ''; ?>>Title (Z-A)</option>
-                    <option value="newest" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'newest') ? 'selected' : ''; ?>>Newest First</option>
-                    <option value="oldest" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'oldest') ? 'selected' : ''; ?>>Oldest First</option>
-                </select>
-            </div>
-            <div class="filter-field">
-                <button type="submit" class="btn">Search</button>
-            </div>
-        </form>
+                <div class="filter-field">
+                    <label for="search_category">Category:</label>
+                    <select name="search_category">
+                        <option value="">Select a category</option>
+                        <?php foreach ($categories as $category): ?>
+                            <option value="<?php echo htmlspecialchars($category['Name']); ?>" 
+                                <?php echo (isset($_GET['search_category']) && $_GET['search_category'] === htmlspecialchars($category['Name'])) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($category['Name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label for="filter">Sort By:</label>
+                    <select name="filter">
+                        <option value="">Select sorting option</option>
+                        <option value="az" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'az') ? 'selected' : ''; ?>>Title (A-Z)</option>
+                        <option value="za" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'za') ? 'selected' : ''; ?>>Title (Z-A)</option>
+                        <option value="newest" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'newest') ? 'selected' : ''; ?>>Newest First</option>
+                        <option value="oldest" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'oldest') ? 'selected' : ''; ?>>Oldest First</option>
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <button type="submit" class="btn">Search</button>
+                </div>
+            </form>
 
-        <button class="add-movie-icon btn add_movie" style="min-width:120px;" id="addMovieBtn"> Add Movie</button>
+            <button class="add-movie-icon btn add_movie" style="min-width:120px;" id="addMovieBtn"> Add Movie</button>
 
-    </div>
-    <?php if (isset($_GET['search_title']) || (isset($_GET['search_category']) && $_GET['search_category'] !== '') || isset($_GET['filter'])): ?>
-        <div class="currently-viewing-container">
-            <p><strong>Currently Viewing:</strong>
-                <?php if (isset($_GET['search_title']) && $_GET['search_title'] !== ''): ?>
-                    Title containing "<em><?php echo htmlspecialchars($_GET['search_title']); ?></em>"
-                <?php endif; ?>
-                <?php if (isset($_GET['search_category']) && $_GET['search_category'] !== ''): ?>
-                    <?php echo isset($_GET['search_title']) && $_GET['search_title'] !== '' ? ' and ' : ''; ?>
-                    Category "<em><?php echo htmlspecialchars($_GET['search_category']); ?></em>"
-                <?php endif; ?>
-                <?php if (isset($_GET['filter'])): ?>
-                    <?php
-                    if (isset($_GET['search_title']) || isset($_GET['search_category'])) {
-                        echo ' sorted by ';
-                    }
-                    switch ($_GET['filter']) {
-                        case 'az':
-                            echo 'Title (A-Z)';
-                            break;
-                        case 'za':
-                            echo 'Title (Z-A)';
-                            break;
-                        case 'newest':
-                            echo 'Newest First';
-                            break;
-                        case 'oldest':
-                            echo 'Oldest First';
-                            break;
-                        default:
-                            break;
-                    }
-                    ?>
-                <?php endif; ?>
-            </p>
         </div>
-    <?php endif; ?>
-    <ul class="movie-gallery">
-    <?php while ($movie = $result->fetch_assoc()): ?>
-        <li class="movie-item">
-            <div class="movie-image-container">
-                <?php if (!empty($movie['image_link'])): ?>
-                    <img class="movie-image" src="<?php echo htmlspecialchars($movie['image_link']); ?>" alt="Movie Image">
-                <?php endif; ?>
-                <div class="movie-overlay">
-                    <strong><?php echo htmlspecialchars($movie['Title']); ?></strong><br>
-                    <p><?php echo htmlspecialchars($movie['Description']); ?></p>
-                </div>
-            </div>
-            
-            <div class="movie-actions">
-                <button class="toggle_favourite" data-movie-id="<?php echo $movie['id_movies']; ?>">
-                    <?php 
-                        $check_like_sql = "SELECT * FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?";
-                        $check_stmt = $conn->prepare($check_like_sql);
-                        $item_type = "movie";
-                        $check_stmt->bind_param('iis', $_SESSION['user_id'], $movie['id_movies'], $item_type);
-                        $check_stmt->execute();
-                        $check_result = $check_stmt->get_result();
-                        echo ($check_result->num_rows > 0) ? 'Remove from Favourite' : 'Add to Favourite';
-                        $check_stmt->close();
-                    ?>
-                </button>
-                <button class="delete_movie_from_db" data-movie-id="<?php echo $movie['id_movies']; ?>">Delete</button>
-                
-                <div class="star-rating" data-item-id="<?php echo $movie['id_movies']; ?>" data-item-type="movie">
-                <?php 
-                    $rating = isset($movie['average_rating']) ? $movie['average_rating'] : 0;
-                    if ($rating == 0) {
-                        $rating = 0; 
-                    }
-                    $fullStars = floor($rating);
-                    $halfStar = ($rating - $fullStars >= 0.5);
-                    for ($i = 1; $i <= 5; $i++) {
-                        if ($i <= $fullStars) {
-                            echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                        } elseif ($i == $fullStars + 1 && $halfStar) {
-                            echo '<span class="bi bi-star-half star-half" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                        } else {
-                            echo '<span class="bi bi-star empty-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+        <?php if (isset($_GET['search_title']) || (isset($_GET['search_category']) && $_GET['search_category'] !== '') || isset($_GET['filter'])): ?>
+            <div class="currently-viewing-container">
+                <p><strong>Currently Viewing:</strong>
+                    <?php if (isset($_GET['search_title']) && $_GET['search_title'] !== ''): ?>
+                        Title containing "<em><?php echo htmlspecialchars($_GET['search_title']); ?></em>"
+                    <?php endif; ?>
+                    <?php if (isset($_GET['search_category']) && $_GET['search_category'] !== ''): ?>
+                        <?php echo isset($_GET['search_title']) && $_GET['search_title'] !== '' ? ' and ' : ''; ?>
+                        Category "<em><?php echo htmlspecialchars($_GET['search_category']); ?></em>"
+                    <?php endif; ?>
+                    <?php if (isset($_GET['filter'])): ?>
+                        <?php
+                        if (isset($_GET['search_title']) || isset($_GET['search_category'])) {
+                            echo ' sorted by ';
                         }
-                    }
-                ?>
-                </div>
-                <p class="rating-value" data-item-id="<?php echo $movie['id_movies']; ?>" data-item-type="movie">
-                    <?php echo number_format($movie['average_rating'], 2); ?>
+                        switch ($_GET['filter']) {
+                            case 'az':
+                                echo 'Title (A-Z)';
+                                break;
+                            case 'za':
+                                echo 'Title (Z-A)';
+                                break;
+                            case 'newest':
+                                echo 'Newest First';
+                                break;
+                            case 'oldest':
+                                echo 'Oldest First';
+                                break;
+                            default:
+                                break;
+                        }
+                        ?>
+                    <?php endif; ?>
                 </p>
-
             </div>
-        </li>
-    <?php endwhile; ?>
-</ul>
-
-
-
-
-    <div class="pagination-container">
-        <?php if ($total_pages > 1): ?>
-            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                <a href="?page=<?php echo $i; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>" <?php if ($i == $current_page) echo 'class="active"'; ?>><?php echo $i; ?></a>
-            <?php endfor; ?>
         <?php endif; ?>
+        <ul class="movie-gallery">
+            <?php while ($movie = $result->fetch_assoc()): ?>
+                <li class="movie-item">
+                    <div class="movie-image-container">
+                        <?php if (!empty($movie['image_link'])): ?>
+                            <img class="movie-image" src="<?php echo htmlspecialchars($movie['image_link']); ?>" alt="Movie Image">
+                        <?php endif; ?>
+                        <div class="movie-overlay">
+                            <strong style="font-size:1.3rem;margin-bottom:5px;"><?php echo htmlspecialchars($movie['Title']); ?></strong>
+                            <p style="margin-bottom:auto;font-size:1rem;"><?php echo htmlspecialchars($movie['Description']); ?></p>
+                            <div class="movie-actions">
+                                <button class="toggle_favourite" data-movie-id="<?php echo $movie['id_movies']; ?>">
+                                    <?php 
+                                        $check_like_sql = "SELECT * FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?";
+                                        $check_stmt = $conn->prepare($check_like_sql);
+                                        $item_type = "movie";
+                                        $check_stmt->bind_param('iis', $_SESSION['user_id'], $movie['id_movies'], $item_type);
+                                        $check_stmt->execute();
+                                        $check_result = $check_stmt->get_result();
+                                        echo ($check_result->num_rows > 0) ? 'Remove from Favourite' : 'Add to Favourite';
+                                        $check_stmt->close();
+                                    ?>
+                                </button>
+                                <button class="delete_movie_from_db" data-movie-id="<?php echo $movie['id_movies']; ?>">Delete</button>
+                                <div class="star-rating" data-item-id="<?php echo $movie['id_movies']; ?>" data-item-type="movie">
+                                    <?php 
+                                        $rating = isset($movie['average_rating']) ? $movie['average_rating'] : 0;
+                                        $fullStars = floor($rating);
+                                        $halfStar = ($rating - $fullStars >= 0.5);
+                                        for ($i = 1; $i <= 5; $i++) {
+                                            if ($i <= $fullStars) {
+                                                echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                                            } elseif ($i == $fullStars + 1 && $halfStar) {
+                                                echo '<span class="bi bi-star-half star-half" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                                            } else {
+                                                echo '<span class="bi bi-star empty-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                                            }
+                                        }
+                                    ?>
+                                </div>
+                                <p class="rating-value" data-item-id="<?php echo $movie['id_movies']; ?>" data-item-type="movie">
+                                    Average Rating: <?php echo number_format($movie['average_rating'], 2); ?>
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+                </li>
+            <?php endwhile; ?>
+        </ul>
+        <div class="pagination-container">
+            <?php if ($total_pages > 1): ?>
+                <!-- Link to the First Page -->
+                <?php if ($current_page > 1): ?>
+                    <a href="?page=1&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                <?php endif; ?>
+
+                <!-- Link to the Previous Page -->
+                <?php if ($current_page > 1): ?>
+                    <a href="?page=<?php echo $current_page - 1; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                <?php endif; ?>
+
+                <!-- Display Only 3 Pages -->
+                <?php 
+                $start_page = max(1, $current_page - 1); 
+                $end_page = min($total_pages, $current_page + 1);
+                for ($i = $start_page; $i <= $end_page; $i++): 
+                ?>
+                    <a href="?page=<?php echo $i; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>" <?php if ($i == $current_page) echo 'class="active"'; ?>>
+                        <?php echo $i; ?>
+                    </a>
+                <?php endfor; ?>
+
+                <!-- Link to the Next Page -->
+                <?php if ($current_page < $total_pages): ?>
+                    <a href="?page=<?php echo $current_page + 1; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                <?php endif; ?>
+
+                <!-- Link to the Last Page -->
+                <?php if ($current_page < $total_pages): ?>
+                    <a href="?page=<?php echo $total_pages; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
     </div>
+    
+
+
+
 
     <footer>
         <div class="footer-container">

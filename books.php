@@ -123,11 +123,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
             if ($delete_stmt->execute()) {
                 $response = ['success' => true];
             } else {
-                $response = ['success' => false, 'error' => 'Could not delete the movie.'];
+                $response = ['success' => false, 'error' => 'Could not delete the book.'];
             }
             $delete_stmt->close();
         } else {
-            $response = ['success' => false, 'error' => 'You do not have permission to delete this movie.'];
+            $response = ['success' => false, 'error' => 'You do not have permission to delete this book.'];
         }
     } else {
         $response = ['success' => false, 'error' => 'Book not found.'];
@@ -198,7 +198,7 @@ $stmt_categories->execute();
 $categories_result = $stmt_categories->get_result();
 $categories = $categories_result->fetch_all(MYSQLI_ASSOC);
 // Check if search filters are set
-$books_per_page = 5; // Number of books per page
+$books_per_page = 8; // Number of books per page
 $current_page = isset($_GET['page']) ? intval($_GET['page']) : 1; // Current page
 $offset = ($current_page - 1) * $books_per_page; // Calculate offset
 
@@ -323,13 +323,13 @@ if (isset($_SESSION['user_id'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Books</title>
-    <link rel="stylesheet" href="css/style.css">
     <?php include 'includes/fontawesome.php'; ?> 
     <link rel="stylesheet" href="assets/styles/header_footer.css">
+    <link rel="stylesheet" href="assets/styles/movies.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
-            $('.add_to_favourite').click(function() {
+            $('.toggle_favourite').click(function() {
                 var button = $(this);
                 var bookId = button.data('book-id');
 
@@ -355,6 +355,9 @@ if (isset($_SESSION['user_id'])) {
             $('.delete_book_from_db').click(function() {
                 var button = $(this);
                 var bookId = button.data('book-id');
+                if (!confirm("Are you sure you want to delete this book?")) {
+                    return; 
+                }
                 $.ajax({
                     url: 'books.php',
                     type: 'POST',
@@ -362,7 +365,7 @@ if (isset($_SESSION['user_id'])) {
                     success: function(response) {
                         var data = JSON.parse(response);
                         if (data.success) {
-                            button.closest('tr').fadeOut(); 
+                            button.closest('li').fadeOut(); 
                         } else {
                             alert('Error: ' + data.error);
                         }
@@ -372,106 +375,131 @@ if (isset($_SESSION['user_id'])) {
                     }
                 });
             });
-            $('.rating_book_1').click(function() {
-                var button = $(this);
-                var bookId = button.data('book-id');
+            $(document).on('mouseenter', '.star-rating span', function () {
+                var star = $(this);
+                var ratingValue = star.data('rating');
+                var tooltip = $('<div class="tooltip"></div>').text(ratingValue.toFixed(2));
+                $('body').append(tooltip);
+
+                $(document).on('mousemove.tooltip', function (e) {
+                    tooltip.css({
+                        left: e.pageX + 15,
+                        top: e.pageY + 15
+                    });
+                });
+
+                tooltip.show();
+            });
+
+            $(document).on('mouseleave', '.star-rating span', function () {
+                $('.tooltip').remove();
+                $(document).off('mousemove.tooltip');
+            });
+
+            $(document).on('click', '.star-rating span', function () {
+                var star = $(this);
+                var itemId = star.closest('.star-rating').data('item-id');
+                var itemType = star.closest('.star-rating').data('item-type');
+                var rating = star.data('rating');
+
                 $.ajax({
-                    url: 'books.php',
+                    url: 'favourite.php',
                     type: 'POST',
-                    data: { book_id: bookId,action:'rating_1' },
-                    success: function(response) {
+                    data: {
+                        item_id: itemId,
+                        action: 'rating_' + itemType + '_' + rating,
+                        rating: rating
+                    },
+                    success: function (response) {
                         var data = JSON.parse(response);
                         if (data.success) {
-                            console.log('Success');
+                            console.log('Rating successful');
+                            
+                            var newRating = (data.new_average_rating == 0 || isNaN(data.new_average_rating)) ? rating : parseFloat(data.new_average_rating);
+                            if (isNaN(newRating)) {
+                                newRating = 0;
+                            }
+                            $('p.rating-value[data-item-id="' + itemId + '"]').text(" Average Rating: "+newRating.toFixed(2));
+                            var fullStars = Math.floor(newRating);
+                            var halfStar = (newRating - fullStars >= 0.5);
+                            var starsHtml = '';
+                            for (var i = 1; i <= 5; i++) {
+                                if (i <= fullStars) {
+                                    starsHtml += '<span class="bi bi-star-fill full-star" data-rating="' + i + '" title="Rating: ' + newRating + '"></span>';
+                                } else if (i === fullStars + 1 && halfStar) {
+                                    starsHtml += '<span class="bi bi-star-half star-half" data-rating="' + i + '" title="Rating: ' + newRating + '"></span>';
+                                } else {
+                                    starsHtml += '<span class="bi bi-star empty-star" data-rating="' + i + '" title="Rating: ' + newRating + '"></span>';
+                                }
+                            }
+                            $('.star-rating[data-item-id="' + itemId + '"]').html(starsHtml);
                         } else {
                             alert('Error: ' + data.error);
                         }
                     },
-                    error: function() {
+                    error: function () {
                         alert('An error occurred while processing your request.');
                     }
                 });
             });
-            $('.rating_book_2').click(function() {
-                var button = $(this);
-                var bookId = button.data('book-id');
-                $.ajax({
-                    url: 'books.php',
-                    type: 'POST',
-                    data: { book_id: bookId,action:'rating_2' },
-                    success: function(response) {
-                        var data = JSON.parse(response);
-                        if (data.success) {
-                            console.log('Success');
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    },
-                    error: function() {
-                        alert('An error occurred while processing your request.');
-                    }
-                });
+
+            
+            $("#movieModal").hide();
+            $(".add-movie-icon").click(function() {
+                $("#movieModal").fadeIn();
             });
-            $('.rating_book_3').click(function() {
-                var button = $(this);
-                var bookId = button.data('book-id');
-                $.ajax({
-                    url: 'books.php',
-                    type: 'POST',
-                    data: { book_id: bookId,action:'rating_3' },
-                    success: function(response) {
-                        var data = JSON.parse(response);
-                        if (data.success) {
-                            console.log('Success');
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    },
-                    error: function() {
-                        alert('An error occurred while processing your request.');
-                    }
-                });
+            $(".close").click(function() {
+                $("#movieModal").fadeOut();
             });
-            $('.rating_book_4').click(function() {
-                var button = $(this);
-                var bookId = button.data('book-id');
-                $.ajax({
-                    url: 'books.php',
-                    type: 'POST',
-                    data: { book_id: bookId,action:'rating_4' },
-                    success: function(response) {
-                        var data = JSON.parse(response);
-                        if (data.success) {
-                            console.log('Success');
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    },
-                    error: function() {
-                        alert('An error occurred while processing your request.');
-                    }
-                });
+            $(window).click(function(event) {
+                if ($(event.target).is("#movieModal")) {
+                    $("#movieModal").fadeOut();
+                }
             });
-            $('.rating_book_5').click(function() {
-                var button = $(this);
-                var bookId = button.data('book-id');
-                $.ajax({
-                    url: 'books.php',
-                    type: 'POST',
-                    data: { book_id: bookId,action:'rating_5' },
-                    success: function(response) {
-                        var data = JSON.parse(response);
-                        if (data.success) {
-                            console.log('Success');
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    },
-                    error: function() {
-                        alert('An error occurred while processing your request.');
-                    }
-                });
+            
+            const $dragAndDropAreaMovie = $("#drop-area_movie");
+            const $fileInputMovie = $("#image");
+            const $fileNameDisplayMovie = $(".drop-areaName_movie");
+            $dragAndDropAreaMovie.on("click", function () {
+                $fileInputMovie.trigger("click");
             });
+            $fileInputMovie.on("change", function () {
+                showPreviewMovie(this.files);
+            });
+            $dragAndDropAreaMovie.on("dragover", function (e) {
+                e.preventDefault();
+                $dragAndDropAreaMovie.css("background-color", "#e0e0e0");
+            });
+
+            $dragAndDropAreaMovie.on("dragleave", function () {
+                $dragAndDropAreaMovie.css("background-color", "#f9f9f9");
+            });
+
+            $dragAndDropAreaMovie.on("drop", function (e) {
+                e.preventDefault();
+                $dragAndDropAreaMovie.css("background-color", "#f9f9f9");
+                const files = e.originalEvent.dataTransfer.files;
+                $fileInputMovie[0].files = files; 
+                showPreviewMovie(files);
+            });
+
+            function showPreviewMovie(files) {
+                $dragAndDropAreaMovie.empty(); 
+                $fileNameDisplayMovie.empty(); 
+                if (files.length) {
+                    const file = files[0];
+                    $fileNameDisplayMovie.text(`Selected File: ${file.name}`);
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const $img = $("<img>").attr("src", e.target.result);
+                        $dragAndDropAreaMovie.append($img);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    $dragAndDropAreaMovie.html("<p>No file chosen</p>");
+                    $fileNameDisplayMovie.text("");
+                }
+            }
         });
     </script>
 </head>
@@ -545,7 +573,219 @@ if (isset($_SESSION['user_id'])) {
             </div>
         </nav>
     </header>
-    <h2>Your Books</h2>
+
+    <div id="movieModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeModal">&times;</span>
+            <div class="form-container">
+                <h3>Create New Book</h3>
+                <form method="POST" action="books.php" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="add_book">
+
+                    <div class="form-group">
+                        <label for="title">Title:</label>
+                        <input type="text" name="title" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="author">Author:</label>
+                        <input type="text" name="author" required></input>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description:</label>
+                        <textarea name="description" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category">Category:</label>
+                        <select name="category" required>
+                            <option value="">Select a category</option>
+                            <?php foreach ($categories as $category): ?>
+                                <option value="<?php echo htmlspecialchars($category['Name']); ?>">
+                                    <?php echo htmlspecialchars($category['Name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="form-group col">
+                        <label for="image">Image:</label>
+                        <div id="drop-area_movie" class="drop-area">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <p>Drag & Drop an image here to upload</p>
+                        </div>
+                        <input type="file" id="image" name="image" accept="image/*" required style="display:none;">
+                        <div class="drop-areaName_movie" style="margin-top: 5px; font-size: 14px; color: #555;"></div>
+                    </div>
+
+                    <button type="submit" class="btn">Add Book</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="min_height_div">
+        <div class="filter-section">
+            <form method="GET" action="" class="filter-div">
+                <div class="filter-field">
+                    <label for="search_title">Title:</label>
+                    <input type="text" name="search_title" placeholder="Enter part of the title" 
+                        value="<?php echo htmlspecialchars($_GET['search_title'] ?? ''); ?>">
+                </div>
+
+                <div class="filter-field">
+                    <label for="search_category">Category:</label>
+                    <select name="search_category">
+                        <option value="">Select a category</option>
+                        <?php foreach ($categories as $category): ?>
+                            <option value="<?php echo htmlspecialchars($category['Name']); ?>" 
+                                <?php echo (isset($_GET['search_category']) && $_GET['search_category'] === htmlspecialchars($category['Name'])) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($category['Name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label for="filter">Sort By:</label>
+                    <select name="filter">
+                        <option value="">Select sorting option</option>
+                        <option value="az" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'az') ? 'selected' : ''; ?>>Title (A-Z)</option>
+                        <option value="za" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'za') ? 'selected' : ''; ?>>Title (Z-A)</option>
+                        <option value="newest" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'newest') ? 'selected' : ''; ?>>Newest First</option>
+                        <option value="oldest" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'oldest') ? 'selected' : ''; ?>>Oldest First</option>
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <button type="submit" class="btn">Search</button>
+                </div>
+            </form>
+
+            <button class="add-movie-icon btn add_book" style="min-width:120px;" id="addMovieBtn"> Add Book</button>
+
+        </div>
+        <?php if (isset($_GET['search_title']) || (isset($_GET['search_category']) && $_GET['search_category'] !== '') || isset($_GET['filter'])): ?>
+            <div class="currently-viewing-container">
+                <p><strong>Currently Viewing:</strong>
+                    <?php if (isset($_GET['search_title']) && $_GET['search_title'] !== ''): ?>
+                        Title containing "<em><?php echo htmlspecialchars($_GET['search_title']); ?></em>"
+                    <?php endif; ?>
+                    <?php if (isset($_GET['search_category']) && $_GET['search_category'] !== ''): ?>
+                        <?php echo isset($_GET['search_title']) && $_GET['search_title'] !== '' ? ' and ' : ''; ?>
+                        Category "<em><?php echo htmlspecialchars($_GET['search_category']); ?></em>"
+                    <?php endif; ?>
+                    <?php if (isset($_GET['filter'])): ?>
+                        <?php
+                        if (isset($_GET['search_title']) || isset($_GET['search_category'])) {
+                            echo ' sorted by ';
+                        }
+                        switch ($_GET['filter']) {
+                            case 'az':
+                                echo 'Title (A-Z)';
+                                break;
+                            case 'za':
+                                echo 'Title (Z-A)';
+                                break;
+                            case 'newest':
+                                echo 'Newest First';
+                                break;
+                            case 'oldest':
+                                echo 'Oldest First';
+                                break;
+                            default:
+                                break;
+                        }
+                        ?>
+                    <?php endif; ?>
+                </p>
+            </div>
+        <?php endif; ?>
+        <ul class="movie-gallery">
+            <?php while ($book = $result->fetch_assoc()): ?>
+                <li class="movie-item">
+                    <div class="movie-image-container">
+                        <?php if (!empty($book['image_link'])): ?>
+                            <img class="movie-image" src="<?php echo htmlspecialchars($book['image_link']); ?>" alt="Book Image">
+                        <?php endif; ?>
+                        <div class="movie-overlay">
+                            <strong style="font-size:1.3rem;margin-bottom:5px;"><?php echo htmlspecialchars($book['title']); ?></strong>
+                            <p style="margin-bottom:auto;font-size:1rem;"><?php echo htmlspecialchars($book['description']); ?></p>
+                            <div class="movie-actions">
+                                <button class="toggle_favourite" data-book-id="<?php echo $book['id']; ?>">
+                                    <?php 
+                                        $check_like_sql = "SELECT * FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?";
+                                        $check_stmt = $conn->prepare($check_like_sql);
+                                        $item_type = "book";
+                                        $check_stmt->bind_param('iis', $_SESSION['user_id'], $book['id'], $item_type);
+                                        $check_stmt->execute();
+                                        $check_result = $check_stmt->get_result();
+                                        echo ($check_result->num_rows > 0) ? 'Remove from Favourite' : 'Add to Favourite';
+                                        $check_stmt->close();
+                                    ?>
+                                </button>
+                                <button class="delete_book_from_db" data-book-id="<?php echo $book['id']; ?>">Delete</button>
+                                <div class="star-rating" data-item-id="<?php echo $book['id']; ?>" data-item-type="book">
+                                    <?php 
+                                        $rating = isset($book['average_rating']) ? $book['average_rating'] : 0;
+                                        $fullStars = floor($rating);
+                                        $halfStar = ($rating - $fullStars >= 0.5);
+                                        for ($i = 1; $i <= 5; $i++) {
+                                            if ($i <= $fullStars) {
+                                                echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                                            } elseif ($i == $fullStars + 1 && $halfStar) {
+                                                echo '<span class="bi bi-star-half star-half" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                                            } else {
+                                                echo '<span class="bi bi-star empty-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                                            }
+                                        }
+                                    ?>
+                                </div>
+                                <p class="rating-value" data-item-id="<?php echo $book['id']; ?>" data-item-type="book">
+                                    Average Rating: <?php echo number_format($book['average_rating'], 2); ?>
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+                </li>
+            <?php endwhile; ?>
+        </ul>
+        <div class="pagination-container">
+            <?php if ($total_pages > 1): ?>
+                <?php if ($current_page > 1): ?>
+                    <a href="?page=1&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                <?php endif; ?>
+                <?php if ($current_page > 1): ?>
+                    <a href="?page=<?php echo $current_page - 1; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                <?php endif; ?>
+                <?php 
+                $start_page = max(1, $current_page - 1); 
+                $end_page = min($total_pages, $current_page + 1);
+                for ($i = $start_page; $i <= $end_page; $i++): 
+                ?>
+                    <a href="?page=<?php echo $i; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>" <?php if ($i == $current_page) echo 'class="active"'; ?>>
+                        <?php echo $i; ?>
+                    </a>
+                <?php endfor; ?>
+                <?php if ($current_page < $total_pages): ?>
+                    <a href="?page=<?php echo $current_page + 1; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                <?php endif; ?>
+                <?php if ($current_page < $total_pages): ?>
+                    <a href="?page=<?php echo $total_pages; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
+    </div>
+    
+
+    <!-- <h2>Your Books</h2>
     <form method="POST" action="books.php" enctype="multipart/form-data">
         <input type="hidden" name="action" value="add_book">
         
@@ -597,8 +837,6 @@ if (isset($_SESSION['user_id'])) {
         
         <button type="submit">Search</button>
     </form>
-
-    <!-- Display Selected Search Criteria -->
     <?php if (isset($_GET['search_title']) || (isset($_GET['search_category']) && $_GET['search_category'] !== '') || isset($_GET['filter'])): ?>
         <p><strong>Currently Viewing:</strong>
             <?php if (isset($_GET['search_title']) && $_GET['search_title'] !== ''): ?>
@@ -662,7 +900,7 @@ if (isset($_SESSION['user_id'])) {
                         <?php endif; ?>
                     </td>
                     <td>
-                        <button class="add_to_favourite" data-book-id="<?php echo $book['id']; ?>" data-liked="<?php echo $book['like']; ?>">
+                        <button class="toggle_favourite" data-book-id="<?php echo $book['id']; ?>" data-liked="<?php echo $book['like']; ?>">
                             <?php 
                                 $user_id = $_SESSION['user_id'];
                                 $item_type = "book";
@@ -699,7 +937,7 @@ if (isset($_SESSION['user_id'])) {
             <a href="?page=<?php echo $i; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>" <?php if ($i == $current_page) echo 'class="active"'; ?>><?php echo $i; ?></a>
         <?php endfor; ?>
     <?php endif; ?>
-</div>
+</div> -->
 <footer>
     <div class="footer-container">
         <div class="footer-left">

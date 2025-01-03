@@ -458,17 +458,33 @@ if (isset($_SESSION['user_id'])) {
                     
                     if ($item_type === 'movie') {
                         $item = current(array_filter($movies, fn($movie) => $movie['id_movies'] == $item_id));
-                        $name = $item['Title'];
-                        $image = $item['image_link'] ?: $default_image;
+                        if ($item) {
+                            $name = $item['Title'];
+                            $image = $item['image_link'] ?: $default_image;
+                        } else {
+                            $name = 'Unknown Movie';
+                            $image = $default_image;
+                        }
                     } else if ($item_type === 'recipe') {
                         $item = current(array_filter($recipes, fn($recipe) => $recipe['id_recipes'] == $item_id));
-                        $name = $item['title'];
-                        $image = $item['image_link'] ?: $default_image;
+                        if ($item) {
+                            $name = $item['title'];
+                            $image = $item['image_link'] ?: $default_image;
+                        } else {
+                            $name = 'Unknown Recipe';
+                            $image = $default_image;
+                        }
                     } else if ($item_type === 'book') {
                         $item = current(array_filter($books, fn($book) => $book['id'] == $item_id));
-                        $name = $item['title'];
-                        $image = $item['image_link'] ?: $default_image;
+                        if ($item) {
+                            $name = $item['title'];
+                            $image = $item['image_link'] ?: $default_image;
+                        } else {
+                            $name = 'Unknown Book';
+                            $image = $default_image;
+                        }
                     }
+                    
                     
                     echo '<li class="favorite-item">
                             <img src="' . $image . '" alt="' . $name . '" class="item-image">
