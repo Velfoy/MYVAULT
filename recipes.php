@@ -197,13 +197,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) &&
 }
 
 
-$recipes_per_page = 5; // Number of recipes per page
+$recipes_per_page = 2; // Number of recipes per page
 $current_page = isset($_GET['page']) ? intval($_GET['page']) : 1; // Current page
 $offset = ($current_page - 1) * $recipes_per_page; // Calculate offset
 
 // Sanitize and retrieve filter/search variables
 $search_title = isset($_GET['search_title']) ? '%' . sanitize_input($_GET['search_title']) . '%' : null;
-$sort = isset($_GET['sort']) ? sanitize_input($_GET['sort']) : null; // Retrieve sort variable
+$sort = isset($_GET['filter']) ? sanitize_input($_GET['filter']) : null; // Retrieve sort variable
 
 // Base SQL Query for Recipes with Average Rating and Filters
 $sql = "
@@ -309,13 +309,13 @@ if (isset($_SESSION['user_id'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recipes</title>
-    <link rel="stylesheet" href="css/style.css">
     <?php include 'includes/fontawesome.php'; ?> 
     <link rel="stylesheet" href="assets/styles/header_footer.css">
+    <link rel="stylesheet" href="assets/styles/movies.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
-            $('.add_to_favourite').click(function() {
+            $('.toggle_favourite').click(function() {
                 var button = $(this);
                 var recipeId = button.data('recipe-id');
 
@@ -338,7 +338,7 @@ if (isset($_SESSION['user_id'])) {
                     }
                 });
             });
-            $('.delete_book_from_db').click(function() {
+            $('.delete_recipe_from_db').click(function() {
                 var button = $(this);
                 var recipeId = button.data('recipe-id');
                 $.ajax({
@@ -348,7 +348,7 @@ if (isset($_SESSION['user_id'])) {
                     success: function(response) {
                         var data = JSON.parse(response);
                         if (data.success) {
-                            button.closest('tr').fadeOut(); 
+                            button.closest('li').fadeOut(); 
                         } else {
                             alert('Error: ' + data.error);
                         }
@@ -358,106 +358,133 @@ if (isset($_SESSION['user_id'])) {
                     }
                 });
             });
-            $('.rating_recipe_1').click(function() {
-                var button = $(this);
-                var recipeId = button.data('recipe-id');
+            $(document).on('mouseenter', '.star-rating span', function () {
+                var star = $(this);
+                var ratingValue = star.data('rating');
+                var tooltip = $('<div class="tooltip"></div>').text(ratingValue.toFixed(2));
+                $('body').append(tooltip);
+
+                $(document).on('mousemove.tooltip', function (e) {
+                    tooltip.css({
+                        left: e.pageX + 15,
+                        top: e.pageY + 15
+                    });
+                });
+
+                tooltip.show();
+            });
+
+            $(document).on('mouseleave', '.star-rating span', function () {
+                $('.tooltip').remove();
+                $(document).off('mousemove.tooltip');
+            });
+
+            $(document).on('click', '.star-rating span', function () {
+                var star = $(this);
+                var itemId = star.closest('.star-rating').data('item-id');
+                var itemType = star.closest('.star-rating').data('item-type');
+                var rating = star.data('rating');
+
                 $.ajax({
-                    url: 'recipes.php',
+                    url: 'favourite.php',
                     type: 'POST',
-                    data: { recipe_id: recipeId,action:'rating_1' },
-                    success: function(response) {
+                    data: {
+                        item_id: itemId,
+                        action: 'rating_' + itemType + '_' + rating,
+                        rating: rating
+                    },
+                    success: function (response) {
                         var data = JSON.parse(response);
                         if (data.success) {
-                            console.log('Success');
+                            console.log('Rating successful');
+                            
+                            var newRating = (data.new_average_rating == 0 || isNaN(data.new_average_rating)) ? rating : parseFloat(data.new_average_rating);
+                            if (isNaN(newRating)) {
+                                newRating = 0;
+                            }
+                            $('p.rating-value[data-item-id="' + itemId + '"]').text(" Average Rating: "+newRating.toFixed(2));
+                            var fullStars = Math.floor(newRating);
+                            var halfStar = (newRating - fullStars >= 0.5);
+                            var starsHtml = '';
+                            for (var i = 1; i <= 5; i++) {
+                                if (i <= fullStars) {
+                                    starsHtml += '<span class="bi bi-star-fill full-star" data-rating="' + i + '" title="Rating: ' + newRating + '"></span>';
+                                } else if (i === fullStars + 1 && halfStar) {
+                                    starsHtml += '<span class="bi bi-star-half star-half" data-rating="' + i + '" title="Rating: ' + newRating + '"></span>';
+                                } else {
+                                    starsHtml += '<span class="bi bi-star empty-star" data-rating="' + i + '" title="Rating: ' + newRating + '"></span>';
+                                }
+                            }
+                            $('.star-rating[data-item-id="' + itemId + '"]').html(starsHtml);
                         } else {
                             alert('Error: ' + data.error);
                         }
                     },
-                    error: function() {
+                    error: function () {
                         alert('An error occurred while processing your request.');
                     }
                 });
             });
-            $('.rating_recipe_2').click(function() {
-                var button = $(this);
-                var recipeId = button.data('recipe-id');
-                $.ajax({
-                    url: 'recipes.php',
-                    type: 'POST',
-                    data: { recipe_id: recipeId,action:'rating_2' },
-                    success: function(response) {
-                        var data = JSON.parse(response);
-                        if (data.success) {
-                            console.log('Success');
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    },
-                    error: function() {
-                        alert('An error occurred while processing your request.');
-                    }
-                });
+
+
+
+
+            $("#movieModal").hide();
+            $(".add-movie-icon").click(function() {
+                $("#movieModal").fadeIn();
             });
-            $('.rating_recipe_3').click(function() {
-                var button = $(this);
-                var recipeId = button.data('recipe-id');
-                $.ajax({
-                    url: 'recipes.php',
-                    type: 'POST',
-                    data: { recipe_id: recipeId,action:'rating_3' },
-                    success: function(response) {
-                        var data = JSON.parse(response);
-                        if (data.success) {
-                            console.log('Success');
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    },
-                    error: function() {
-                        alert('An error occurred while processing your request.');
-                    }
-                });
+            $(".close").click(function() {
+                $("#movieModal").fadeOut();
             });
-            $('.rating_recipe_4').click(function() {
-                var button = $(this);
-                var recipeId = button.data('recipe-id');
-                $.ajax({
-                    url: 'recipes.php',
-                    type: 'POST',
-                    data: { recipe_id: recipeId,action:'rating_4' },
-                    success: function(response) {
-                        var data = JSON.parse(response);
-                        if (data.success) {
-                            console.log('Success');
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    },
-                    error: function() {
-                        alert('An error occurred while processing your request.');
-                    }
-                });
+            $(window).click(function(event) {
+                if ($(event.target).is("#movieModal")) {
+                    $("#movieModal").fadeOut();
+                }
             });
-            $('.rating_recipe_5').click(function() {
-                var button = $(this);
-                var recipeId = button.data('recipe-id');
-                $.ajax({
-                    url: 'recipes.php',
-                    type: 'POST',
-                    data: { recipe_id: recipeId,action:'rating_5' },
-                    success: function(response) {
-                        var data = JSON.parse(response);
-                        if (data.success) {
-                            console.log('Success');
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    },
-                    error: function() {
-                        alert('An error occurred while processing your request.');
-                    }
-                });
+            
+            const $dragAndDropAreaMovie = $("#drop-area_movie");
+            const $fileInputMovie = $("#image");
+            const $fileNameDisplayMovie = $(".drop-areaName_movie");
+            $dragAndDropAreaMovie.on("click", function () {
+                $fileInputMovie.trigger("click");
             });
+            $fileInputMovie.on("change", function () {
+                showPreviewMovie(this.files);
+            });
+            $dragAndDropAreaMovie.on("dragover", function (e) {
+                e.preventDefault();
+                $dragAndDropAreaMovie.css("background-color", "#e0e0e0");
+            });
+
+            $dragAndDropAreaMovie.on("dragleave", function () {
+                $dragAndDropAreaMovie.css("background-color", "#f9f9f9");
+            });
+
+            $dragAndDropAreaMovie.on("drop", function (e) {
+                e.preventDefault();
+                $dragAndDropAreaMovie.css("background-color", "#f9f9f9");
+                const files = e.originalEvent.dataTransfer.files;
+                $fileInputMovie[0].files = files; 
+                showPreviewMovie(files);
+            });
+
+            function showPreviewMovie(files) {
+                $dragAndDropAreaMovie.empty(); 
+                $fileNameDisplayMovie.empty(); 
+                if (files.length) {
+                    const file = files[0];
+                    $fileNameDisplayMovie.text(`Selected File: ${file.name}`);
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const $img = $("<img>").attr("src", e.target.result);
+                        $dragAndDropAreaMovie.append($img);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    $dragAndDropAreaMovie.html("<p>No file chosen</p>");
+                    $fileNameDisplayMovie.text("");
+                }
+            }
         });
     </script>
 </head>
@@ -531,149 +558,201 @@ if (isset($_SESSION['user_id'])) {
             </div>
         </nav>
     </header>
-    <h2>Your Recipes</h2>
-    <form method="POST" action="recipes.php" enctype="multipart/form-data"> 
-        <input type="hidden" name="action" value="add_recipe">
-        
-        <label for="title">Title:</label>
-        <input type="text" name="title" required>
+    <div id="movieModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeModal">&times;</span>
+            <div class="form-container">
+                <h3>Create New Recipe</h3>
+                <form method="POST" action="recipes.php" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="add_recipe">
 
-        <label for="ingredients">Ingredients:</label>
-        <textarea name="ingredients" required></textarea>
+                    <div class="form-group">
+                        <label for="title">Title:</label>
+                        <input type="text" name="title" required>
+                    </div>
 
-        <label for="instructions">Instructions:</label>
-        <textarea name="instructions" required></textarea>
+                    <div class="form-group">
+                        <label for="ingredients">Ingredients:</label>
+                        <textarea name="ingredients" required></textarea>
+                    </div>
 
-        <label for="image">Image</label>
-        <input type="file" id="image" name="image" accept="image/*" required>
-        
-        <button type="submit">Add Recipe</button>
-    </form>
-    <h3>Search Recipes</h3>
-    <form method="GET" action="recipes.php">
-    <label for="search_title">Title:</label>
-    <input type="text" name="search_title" placeholder="Enter part of the title" 
-           value="<?php echo htmlspecialchars($_GET['search_title'] ?? ''); ?>">
+                    <div class="form-group">
+                        <label for="instructions">Instructions:</label>
+                        <textarea name="instructions" required></textarea>
+                    </div>
 
-    <label for="sort">Sort By:</label>
-    <select name="sort">
-        <option value="" <?php echo (isset($_GET['sort']) && $_GET['sort'] === '') ? 'selected' : ''; ?>>No Sort</option>
-        <option value="newest" <?php echo (isset($_GET['sort']) && $_GET['sort'] === 'newest') ? 'selected' : ''; ?>>Newest</option>
-        <option value="oldest" <?php echo (isset($_GET['sort']) && $_GET['sort'] === 'oldest') ? 'selected' : ''; ?>>Oldest</option>
-        <option value="az" <?php echo (isset($_GET['sort']) && $_GET['sort'] === 'az') ? 'selected' : ''; ?>>A-Z</option>
-        <option value="za" <?php echo (isset($_GET['sort']) && $_GET['sort'] === 'za') ? 'selected' : ''; ?>>Z-A</option>
-    </select>
+                    <div class="form-group col">
+                        <label for="image">Image:</label>
+                        <div id="drop-area_movie" class="drop-area">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <p>Drag & Drop an image here to upload</p>
+                        </div>
+                        <input type="file" id="image" name="image" accept="image/*" required style="display:none;">
+                        <div class="drop-areaName_movie" style="margin-top: 5px; font-size: 14px; color: #555;"></div>
+                    </div>
 
-    <button type="submit">Search</button>
-</form>
+                    <button type="submit" class="btn">Add Recipe</button>
+                </form>
+            </div>
+        </div>
+    </div>
 
+    <div class="min_height_div">
+        <div class="filter-section">
+            <form method="GET" action="" class="filter-div">
+                <div class="filter-field">
+                    <label for="search_title">Title:</label>
+                    <input type="text" name="search_title" placeholder="Enter part of the title" 
+                        value="<?php echo htmlspecialchars($_GET['search_title'] ?? ''); ?>">
+                </div>
+                <div class="filter-field">
+                    <label for="filter">Sort By:</label>
+                    <select name="filter">
+                        <option value="">Select sorting option</option>
+                        <option value="az" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'az') ? 'selected' : ''; ?>>Title (A-Z)</option>
+                        <option value="za" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'za') ? 'selected' : ''; ?>>Title (Z-A)</option>
+                        <option value="newest" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'newest') ? 'selected' : ''; ?>>Newest First</option>
+                        <option value="oldest" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'oldest') ? 'selected' : ''; ?>>Oldest First</option>
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <button type="submit" class="btn">Search</button>
+                </div>
+            </form>
 
+            <button class="add-movie-icon btn add_movie" style="min-width:120px;" id="addMovieBtn"> Add Recipe</button>
 
-<?php 
-// Update Currently Viewing Message to reflect search title and sorting option
-if (!empty($_GET['search_title']) || !empty($_GET['search_category']) || !empty($_GET['sort'])): 
-?>
-    <p><strong>Currently Viewing:</strong>
-        <?php if (!empty($_GET['search_title'])): ?>
-            Title containing "<em><?php echo htmlspecialchars($_GET['search_title']); ?></em>"
+        </div>
+        <?php if (isset($_GET['search_title']) || isset($_GET['filter'])): ?>
+            <div class="currently-viewing-container">
+                <p><strong>Currently Viewing:</strong>
+                    <?php if (isset($_GET['search_title']) && $_GET['search_title'] !== ''): ?>
+                        Title containing "<em><?php echo htmlspecialchars($_GET['search_title']); ?></em>"
+                    <?php endif; ?>
+                    <?php if (isset($_GET['filter'])): ?>
+                        <?php
+                        if (isset($_GET['search_title'])) {
+                            echo ' sorted by ';
+                        }
+                        switch ($_GET['filter']) {
+                            case 'az':
+                                echo 'Title (A-Z)';
+                                break;
+                            case 'za':
+                                echo 'Title (Z-A)';
+                                break;
+                            case 'newest':
+                                echo 'Newest First';
+                                break;
+                            case 'oldest':
+                                echo 'Oldest First';
+                                break;
+                            default:
+                                break;
+                        }
+                        ?>
+                    <?php endif; ?>
+                </p>
+            </div>
         <?php endif; ?>
-        <?php if (!empty($_GET['search_category'])): ?>
-            <?php if (!empty($_GET['search_title'])) echo ' and '; ?>
-            Category "<em><?php echo htmlspecialchars($_GET['search_category']); ?></em>"
-        <?php endif; ?>
-        <?php if (!empty($_GET['sort'])): ?>
-            <?php if (!empty($_GET['search_title']) || !empty($_GET['search_category'])) echo ' sorted by '; ?>
-            <em>
-                <?php
-                switch ($_GET['sort']) {
-                    case 'newest':
-                        echo 'Newest First';
-                        break;
-                    case 'oldest':
-                        echo 'Oldest First';
-                        break;
-                    case 'az':
-                        echo 'Title (A-Z)';
-                        break;
-                    case 'za':
-                        echo 'Title (Z-A)';
-                        break;
-                }
-                ?>
-            </em>
-        <?php endif; ?>
-    </p>
-<?php endif; ?>
-
-
-
-    <h3>Recipe List</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Title</th>
-                <th>Ingredients</th>
-                <th>Instructions</th>
-                <th>Image</th>
-                <th>Like</th>
-                <th>Delete</th>
-                <th>Rating</th>
-                <th>Average Rating</th>
-            </tr>
-        </thead>
-        <tbody>
+        <ul class="movie-gallery-recipe">
             <?php while ($recipe = $result->fetch_assoc()): ?>
-                <tr>
-                    <td><?php echo htmlspecialchars($recipe['title']); ?></td>
-                    <td><?php echo htmlspecialchars($recipe['Ingredients']); ?></td>
-                    <td><?php echo htmlspecialchars($recipe['Instructions']); ?></td>
-                    <td>
+                <li class="movie-item movie-item-recipe">
+                    <div class="movie-image-container ">
                         <?php if (!empty($recipe['image_link'])): ?>
-                            <img src="<?php echo htmlspecialchars($recipe['image_link']); ?>" alt="Recipe Image" style="width:50px;height:auto;">
-                        <?php else: ?>
-                            No Image
+                            <img class="movie-image movie-image-recipe" src="<?php echo htmlspecialchars($recipe['image_link']); ?>" alt="Movie Image">
                         <?php endif; ?>
-                    </td>
-                    <td>
-                        <button class="add_to_favourite" data-recipe-id="<?php echo $recipe['id_recipes']; ?>" data-liked="<?php echo $recipe['like']; ?>">
-                            <?php 
-                                // Check if the user has liked the recipe
-                                $user_id = $_SESSION['user_id'];
-                                $check_like_sql = "SELECT * FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?";
-                                $check_stmt = $conn->prepare($check_like_sql);
-                                $item_type = "recipe";
-                                $check_stmt->bind_param('iis', $user_id, $recipe['id_recipes'], $item_type);
-                                $check_stmt->execute();
-                                $check_result = $check_stmt->get_result();
-                                echo ($check_result->num_rows > 0) ? 'Remove from Favourite' : 'Add to Favourite';
-                                $check_stmt->close();
-                            ?>
-                        </button>
-                    </td>
-                    <td>
-                    <button class="delete_book_from_db" data-recipe-id="<?php echo $recipe['id_recipes']; ?>">
-                            Delete
-                        </button>
-                    </td> 
-                    <td>
-                        <button class="rating_recipe_1" data-recipe-id="<?php echo $recipe['id_recipes']; ?>">1</button>
-                        <button class="rating_recipe_2" data-recipe-id="<?php echo $recipe['id_recipes']; ?>">2</button>
-                        <button class="rating_recipe_3" data-recipe-id="<?php echo $recipe['id_recipes']; ?>">3</button>
-                        <button class="rating_recipe_4" data-recipe-id="<?php echo $recipe['id_recipes']; ?>">4</button>
-                        <button class="rating_recipe_5" data-recipe-id="<?php echo $recipe['id_recipes']; ?>">5</button>
-                    </td>
-                    <td><?php echo number_format($recipe['average_rating'], 2); ?></td>
-                </tr>
+                        <div class="movie-overlay movie-overlay-recipe">
+                            <strong style="font-size:1.3rem;margin-bottom:5px;"><?php echo htmlspecialchars($recipe['title']); ?></strong>
+                            <p style="margin-bottom:auto;font-size:1rem;"><?php echo htmlspecialchars($recipe['Ingredients']); ?></p>
+                            <p style="margin-bottom:auto;font-size:1rem;"><?php echo htmlspecialchars($recipe['Instructions']); ?></p>
+                            <div class="movie-actions movie-actions-recipe">
+                                <button class="toggle_favourite" data-recipe-id="<?php echo $recipe['id_recipes']; ?>">
+                                    <?php 
+                                        $check_like_sql = "SELECT * FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?";
+                                        $check_stmt = $conn->prepare($check_like_sql);
+                                        $item_type = "recipe";
+                                        $check_stmt->bind_param('iis', $_SESSION['user_id'], $recipe['id_recipes'], $item_type);
+                                        $check_stmt->execute();
+                                        $check_result = $check_stmt->get_result();
+                                        echo ($check_result->num_rows > 0) ? 'Remove from Favourite' : 'Add to Favourite';
+                                        $check_stmt->close();
+                                    ?>
+                                </button>
+                                <button class="delete_recipe_from_db" data-recipe-id="<?php echo $recipe['id_recipes']; ?>">Delete</button>
+                                <div class="star-rating" data-item-id="<?php echo $recipe['id_recipes']; ?>" data-item-type="recipe">
+                                    <?php 
+                                        $rating = isset($recipe['average_rating']) ? $recipe['average_rating'] : 0;
+                                        $fullStars = floor($rating);
+                                        $halfStar = ($rating - $fullStars >= 0.5);
+                                        for ($i = 1; $i <= 5; $i++) {
+                                            if ($i <= $fullStars) {
+                                                echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                                            } elseif ($i == $fullStars + 1 && $halfStar) {
+                                                echo '<span class="bi bi-star-half star-half" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                                            } else {
+                                                echo '<span class="bi bi-star empty-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                                            }
+                                        }
+                                    ?>
+                                </div>
+                                <p class="rating-value" data-item-id="<?php echo $recipe['id_recipes']; ?>" data-item-type="recipe">
+                                    Average Rating: <?php echo number_format($recipe['average_rating'], 2); ?>
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+                </li>
             <?php endwhile; ?>
-        </tbody>
-    </table>
-    <div class="pagination">
+        </ul>
+        <div class="pagination-container">
     <?php if ($total_pages > 1): ?>
-        <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-            <a href="?page=<?php echo $i; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&sort=<?php echo urlencode($_GET['sort'] ?? ''); ?>" <?php if ($i == $current_page) echo 'class="active"'; ?>><?php echo $i; ?></a>
+        <!-- First Page Link -->
+        <?php if ($current_page > 1): ?>
+            <a href="?page=1&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&filter=<?php echo urlencode($_GET['filter'] ?? ''); ?>">
+                <i class="fas fa-angle-double-left"></i>
+            </a>
+        <?php endif; ?>
+
+        <!-- Previous Page Link -->
+        <?php if ($current_page > 1): ?>
+            <a href="?page=<?php echo $current_page - 1; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&filter=<?php echo urlencode($_GET['filter'] ?? ''); ?>">
+                <i class="fas fa-angle-left"></i>
+            </a>
+        <?php endif; ?>
+
+        <!-- Page Numbers -->
+        <?php 
+        $start_page = max(1, $current_page - 1); 
+        $end_page = min($total_pages, $current_page + 1);
+        for ($i = $start_page; $i <= $end_page; $i++): 
+        ?>
+            <a href="?page=<?php echo $i; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&filter=<?php echo urlencode($_GET['filter'] ?? ''); ?>" 
+               class="<?php echo ($i == $current_page) ? 'active' : ''; ?>">
+                <?php echo $i; ?>
+            </a>
         <?php endfor; ?>
+
+        <!-- Next Page Link -->
+        <?php if ($current_page < $total_pages): ?>
+            <a href="?page=<?php echo $current_page + 1; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&filter=<?php echo urlencode($_GET['filter'] ?? ''); ?>">
+                <i class="fas fa-angle-right"></i>
+            </a>
+        <?php endif; ?>
+
+        <!-- Last Page Link -->
+        <?php if ($current_page < $total_pages): ?>
+            <a href="?page=<?php echo $total_pages; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&filter=<?php echo urlencode($_GET['filter'] ?? ''); ?>">
+                <i class="fas fa-angle-double-right"></i>
+            </a>
+        <?php endif; ?>
     <?php endif; ?>
 </div>
+
+
+    </div>
+    
     <footer>
         <div class="footer-container">
             <div class="footer-left">

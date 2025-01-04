@@ -1,66 +1,13 @@
-/* .movie-form-container {
-    margin: 20px;
-    padding: 20px;
-    border: 1px solid #dcdcdc;
-    border-radius: 8px;
-    background-color: rgba(255, 255, 255, 0.9);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
 
-.movie-form-container label {
-    display: block;
-    font-weight: bold;
-    margin-top: 10px;
-    color: #555;
-}
-
-.movie-form-container input[type="text"],
-.movie-form-container textarea,
-.movie-form-container select,
-.movie-form-container input[type="file"] {
-    width: 100%;
-    padding: 10px;
-    margin-top: 5px;
-    margin-bottom: 15px;
-    border: 1px solid #dcdcdc;
-    border-radius: 6px;
-    font-size: 14px;
-    background-color: rgba(255, 255, 255, 0.8);
-}
-
-.movie-form-container input:hover,
-.movie-form-container textarea:hover,
-.movie-form-container select:hover {
-    border-color: black;
-}
-
-.movie-form-container button {
-    background-color: transparent;
-    color: black;
-    padding: 10px 20px;
-    border: 2px solid #dcdcdc;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: all 0.3s ease;
-}
-
-.movie-form-container button:hover {
-    background-color: black;
-    color: white;
-    border-color: black;
-} */
 .movie-gallery {
     display: grid;
-    grid-template-columns: repeat(4, 1fr); /* Default: 4 items per row */
-    gap: 20px; /* Space between items */
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 20px; 
     padding: 20px;
     list-style: none;
     margin: 0;
-    justify-content: center; /* Center the grid */
+    justify-content: center; 
 }
-
-/* Each movie item */
 .movie-item {
     position: relative;
     background-color: #fff;
@@ -68,63 +15,50 @@
     box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease-in-out;
     overflow: hidden;
-    width: 18rem; /* Default poster width */
+    width: 18rem; 
     max-width: 100%;
-    aspect-ratio: 27 / 40; /* Maintain movie poster aspect ratio */
+    aspect-ratio: 27 / 40; 
 }
-
-/* Movie image container */
 .movie-image-container {
     width: 100%;
     height: 100%;
     position: relative;
 }
-
-/* Movie image */
 .movie-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
     transition: transform 0.3s ease-in-out, filter 0.3s ease;
 }
-
-/* Hover effect on movie image */
 .movie-item:hover .movie-image {
-    transform: scale(1.05); /* Slight zoom effect */
+    transform: scale(1.05); 
 }
-
-/* Overlay for buttons and details */
 .movie-overlay {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.85); /* Slightly darker background */
+    background-color: rgba(0, 0, 0, 0.85); 
     color: white;
     display: flex;
     flex-direction: column;
-    justify-content: space-between; /* Space items evenly */
+    justify-content: space-between; 
     align-items: center;
     padding: 20px;
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
     text-align: center;
 }
-
-/* Show overlay on hover */
 .movie-item:hover .movie-overlay {
     opacity: 1;
 }
-
-/* Actions and rating inside overlay */
 .movie-actions {
     display: flex;
     flex-direction: column;
     gap: 15px;
     width: 100%;
 }
-
 .movie-actions button {
     background-color: transparent;
     border: 1px solid #fff;
@@ -135,89 +69,73 @@
     transition: all 0.3s ease;
     color: white;
 }
-
 .movie-actions button:hover {
     background-color: #fff;
     color: black;
 }
-
 .star-rating span {
     margin: 3px;
     color: gold;
     font-size: 20px;
     cursor: pointer;
 }
-
-/* Average rating */
 .rating-value {
     font-weight: bold;
     margin-top: 10px;
     font-size: 16px;
 }
-
-/* RESPONSIVE DESIGN */
-
-/* Tablets */
 @media (max-width: 1224px) {
     .movie-gallery {
-        grid-template-columns: repeat(3, 1fr); /* Reduce to 3 items per row */
+        grid-template-columns: repeat(3, 1fr);
     }
 
     .movie-item {
-        width: 16rem; /* Slightly smaller for tablets */
+        width: 16rem; 
     }
 }
-
-/* Small tablets or larger phones */
 @media (max-width: 800px) {
     .movie-gallery {
-        grid-template-columns: repeat(2, 1fr); /* Reduce to 2 items per row */
+        grid-template-columns: repeat(2, 1fr); 
     }
 
     .movie-item {
-        width: 15rem; /* Shrink the poster size further */
+        width: 15rem;
     }
 }
-
-/* Phones */
 @media (max-width: 530px) {
     .movie-gallery {
-        grid-template-columns: 1fr; /* Single-column layout */
-        gap: 15px; /* Smaller gap for a more compact view */
+        grid-template-columns: 1fr; 
+        gap: 15px; 
     }
 
     .movie-item {
-        width: 90%; /* Reduce poster width to 90% of the container */
-        margin: 10px auto; /* Center the items horizontally */
-        aspect-ratio: 27 / 40; /* Maintain aspect ratio for movie poster */
-        max-width: 18rem; /* Limit the width to a max size to prevent it from getting too large */
+        width: 90%; 
+        margin: 10px auto; 
+        aspect-ratio: 27 / 40; 
+        max-width: 18rem; 
     }
-
-    /* Movie Image */
     .movie-image {
-        height: auto; /* Allow poster image to scale with the reduced width */
+        height: auto; 
     }
 
     .movie-actions {
-        gap: 12px; /* Reduce gap between buttons and elements inside the overlay */
+        gap: 12px; 
         width: 100%;
     }
 
     .movie-actions button {
-        font-size: 13px; /* Reduce button font size */
-        padding: 5px 8px; /* Slightly smaller buttons for better fit on small screens */
+        font-size: 13px; 
+        padding: 5px 8px; 
     }
 
     .star-rating span {
-        font-size: 16px; /* Further reduce star sizes */
+        font-size: 16px; 
     }
 
     .rating-value {
-        font-size: 13px; /* Smaller rating text */
+        font-size: 13px; 
     }
 }
-
-
 
 
 
@@ -241,8 +159,6 @@
 .star-rating span:hover ~ span {
     color: #f7c217;
 }
-
-
 .tooltip {
     position: absolute;
     background-color: rgba(0, 0, 0, 0.8);
@@ -253,9 +169,6 @@
     pointer-events: none;
     display: none;
 }
-
-
-
 .filter-section {
     margin: 10px auto;
     padding: 15px 30px;
@@ -270,7 +183,7 @@
     width: 100%;
     flex-wrap: wrap;
 }
-.add_book{
+.add_book,.add_movie{
     margin-left: auto;
 }
 .currently-viewing-container{
@@ -290,7 +203,6 @@
     width: 100%;
     min-width: 120px;
 }
-
 .filter-section input[type="text"],
 .filter-section select {
     padding: 8px 12px;
@@ -307,8 +219,8 @@
 .filter-section input[type="text"]:focus,
 .filter-section select:focus {
     outline: none;
-    border-color: #555; /* Dark border on focus */
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); /* Slight shadow on focus */
+    border-color: #555; 
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
 
 .filter-section input[type="text"]:hover,
@@ -316,8 +228,6 @@
     border-color: #aaa;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
 }
-
-/* Responsive Design */
 @media (max-width: 768px) {
     .filter-section {
         padding: 10px;
@@ -350,13 +260,11 @@
         flex-direction: column;
         justify-content: center;
     }
-    .add_book{
+    .add_book,.add_movie{
         margin: 0 20px;
         margin-bottom: 20px;
     }
 }
-
-/* Movie List Section */
 .movie-list-container {
     margin: 20px;
     list-style: none;
@@ -685,3 +593,176 @@
         min-height: 80vh;
     }
 }
+.movie-gallery-recipe {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);  /* Two equal-width columns */
+    gap: 20px;
+    padding: 20px;
+    list-style: none;
+    margin: 0;
+    width: 100%;
+}
+
+.movie-item-recipe {
+    width: 100%;
+    aspect-ratio: 6 / 3;  /* Aspect ratio keeps image's proportion */
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    position: relative;  /* Ensuring overlay content position */
+}
+
+.movie-image-recipe {
+    width: 100%;
+    height: auto;
+    object-fit: cover;  /* Ensures the image fills its container */
+}
+
+.movie-overlay-recipe {
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    padding: 40px;
+    opacity: 0;  /* Hidden initially, displayed on hover */
+    background-color: rgba(0, 0, 0, 0.75);
+    color: white;
+    text-align: left;
+    transition: opacity 0.3s ease;
+    width: 100%;
+    position: absolute; /* Ensure it stays inside the movie item */
+    bottom: 0;
+}
+
+.movie-overlay-recipe > * {
+    text-align: left;
+    width: 100%;
+}
+
+.movie-actions-recipe {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+.movie-actions-recipe > *{
+    width: 100%;
+}
+.star-rating {
+    display: flex;
+    align-items: left;
+    justify-content: center;
+}
+
+.rating-value {
+    font-size: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 0;
+}
+
+.movie-item-recipe:hover .movie-overlay-recipe {
+    opacity: 1;
+}
+
+.movie-actions-recipe button {
+    background-color: transparent;
+    border: 1px solid #fff;
+    color: white;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: color 0.3s ease, border-color 0.3s ease;
+}
+.movie-overlay-recipe {
+    overflow-x: auto;  
+    padding: 40px 30px; 
+    background-color: rgba(0, 0, 0, 0.75);
+    color: white;
+    text-align: left;
+    transition: opacity 0.3s ease;
+    width: 100%;
+    position: absolute; 
+    bottom: 0;
+}
+.movie-overlay-recipe::-webkit-scrollbar {
+    height: 6px;  
+}
+
+.movie-overlay-recipe::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: 10px;
+}
+
+.movie-overlay-recipe::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2); 
+}
+
+
+@media (max-width: 1024px) {
+    .movie-gallery-recipe {
+        grid-template-columns: repeat(2, 1fr);  
+    }
+
+    .movie-image-recipe {
+        height: 400px;  
+    }
+
+    .movie-overlay-recipe {
+        padding: 25px; 
+    }
+}
+
+@media (max-width: 530px) {
+    .movie-gallery-recipe {
+        grid-template-columns: 1fr; 
+        gap: 15px; 
+    }
+    .movie-overlay-recipe {
+        padding: 20px!important; 
+    }
+    .movie-item-recipe {
+        display: flex;
+        flex-direction: column;
+        width: 90%; 
+        margin: 10px auto; 
+        max-width: 100%!important; 
+    }
+    .movie-image-recipe {
+        height: auto; 
+    }
+
+    .movie-actions-recipe {
+        gap: 12px; 
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .movie-actions-recipe button {
+        font-size: 13px; 
+        padding: 5px 8px; 
+    }
+
+    .star-rating span {
+        font-size: 16px; 
+    }
+
+    .rating-value {
+        font-size: 13px; 
+    }
+    .star-rating {
+       justify-content: center;
+    }
+    .movie-overlay-recipe > * {
+        margin-bottom: 20px!important;
+    }
+    .movie-actions-recipe > *{
+        margin-bottom: auto;
+    }
+}
+
+
