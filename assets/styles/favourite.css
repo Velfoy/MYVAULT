@@ -416,8 +416,3 @@ body{
         margin-bottom: 10px;
     }
 }
-@media (min-height:700px){
-    .favorites-container {
-        height: 100vh;
-    }
-}
