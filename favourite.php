@@ -3,7 +3,6 @@ session_start();
 include 'includes/functions.php';
 include 'includes/db.php';
 check_login();
-
 $sql_recipes = "SELECT item_id FROM likes WHERE user_id = ? AND item_type=?";
 $stmt_recipes = $conn->prepare($sql_recipes);
 $user_id = $_SESSION['user_id'];
@@ -415,7 +414,6 @@ if (isset($_SESSION['user_id'])) {
     </nav>
 </header>
 <div class="favorites-container">
-    <!-- Sidebar -->
     <div class="new-sidebar">
         <ul>
             <li>

@@ -1,11 +1,10 @@
 <?php
 session_start();
 if (!isset($_SESSION['recent_likes'])) {
-    $_SESSION['recent_likes'] = []; // Initialize recent_likes array if it doesn’t exist
+    $_SESSION['recent_likes'] = []; 
 }
-include 'includes/db.php'; // Make sure this connects to your database
+include 'includes/db.php'; 
 
-// Fetch user data if logged in
 $userData = null;
 if (isset($_SESSION['user_id'])) {
     $user_id = $_SESSION['user_id'];

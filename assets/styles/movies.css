@@ -595,7 +595,7 @@
 }
 .movie-gallery-recipe {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);  /* Two equal-width columns */
+    grid-template-columns: repeat(2, 1fr);  
     gap: 20px;
     padding: 20px;
     list-style: none;
@@ -605,7 +605,7 @@
 
 .movie-item-recipe {
     width: 100%;
-    aspect-ratio: 6 / 3;  /* Aspect ratio keeps image's proportion */
+    aspect-ratio: 6 / 3; 
     background-color: #fff;
     border-radius: 8px;
     box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
@@ -613,13 +613,13 @@
     transition: transform 0.3s ease-in-out;
     display: flex;
     flex-direction: column;
-    position: relative;  /* Ensuring overlay content position */
+    position: relative;  
 }
 
 .movie-image-recipe {
     width: 100%;
     height: auto;
-    object-fit: cover;  /* Ensures the image fills its container */
+    object-fit: cover;  
 }
 
 .movie-overlay-recipe {
@@ -627,13 +627,13 @@
     flex-direction: column;
     justify-content: start;
     padding: 40px;
-    opacity: 0;  /* Hidden initially, displayed on hover */
+    opacity: 0;  
     background-color: rgba(0, 0, 0, 0.75);
     color: white;
     text-align: left;
     transition: opacity 0.3s ease;
     width: 100%;
-    position: absolute; /* Ensure it stays inside the movie item */
+    position: absolute; 
     bottom: 0;
 }
 

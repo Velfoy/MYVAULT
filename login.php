@@ -29,14 +29,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $error_message = "No user found with that username.";
         }
     } elseif (isset($_POST['action']) && $_POST['action'] === 'register') {
-        // Collecting registration form data
         $first_name = $_POST['first_name'];
         $last_name = $_POST['last_name'];
         $username = $_POST['username'];
         $email = $_POST['email'];
         $password = $_POST['password'];
 
-        // Validate password strength
         $strength_criteria = [
             'length' => strlen($password) >= 8,
             'lowercase' => preg_match('/[a-z]/', $password),
@@ -45,7 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             'special' => preg_match('/[!@#$%^&*(),.?":{}|<>]/', $password)
         ];
 
-        // Check if password meets criteria
         if (in_array(false, $strength_criteria)) {
             $error_message = "Password must contain at least 8 characters, one lowercase letter, one uppercase letter, one digit, and one special character.";
         } else {
@@ -60,7 +57,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if ($result_check->num_rows > 0) {
                 $error_message = "Username already taken. Please choose a different username.";
             } else {
-                // Insert new user into database
                 $sql = "INSERT INTO users (First_Name, Last_Name, username, email, hashed_password, Role, created_at)
                         VALUES (?, ?, ?, ?, ?, 'user', NOW())";
 
@@ -123,7 +119,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $(".col-1").css("border-radius", "0 30% 30% 0");
             });
 
-            // Password show/hide logic
             $(".input-box .icon-password ").click(function() {
                 var passwordField = $(this).siblings(".input-field");
                 var icon = $(this);
@@ -136,21 +131,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
             });
 
-            // Real-time password strength check for registration
             $('#new_password').on('input', function() {
                 const password = $(this).val();
                 const strengthMeter = $('#password-strength');
                 const strengthText = $('#strength-text');
                 let conditionsMet = 0;
 
-                // Check password strength conditions
                 if (password.length >= 8) conditionsMet++;
                 if (/[a-z]/.test(password)) conditionsMet++;
                 if (/[A-Z]/.test(password)) conditionsMet++;
                 if (/\d/.test(password)) conditionsMet++;
                 if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) conditionsMet++;
 
-                // Password strength indicator logic
                 if (conditionsMet === 5) {
                     strengthMeter.removeClass().addClass('strong');
                     strengthText.text('Strong password').css('color', 'green');
@@ -183,7 +175,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
             </div>
 
-            <!-- Login Form -->
             <div class="login-form">
                 <div class="form-title"><span>Sign In</span></div>
                 <div class="form-inputs">
@@ -211,7 +202,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
             </div>
 
-            <!-- Registration Form -->
             <div class="register-form">
                 <div class="form-title"><span>Sign Up</span></div>
                 <div class="form-inputs">

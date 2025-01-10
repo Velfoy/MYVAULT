@@ -315,16 +315,16 @@ body{
 @media (max-width: 770px) {
     .favorites-container {
         flex-direction: column;
-        text-align: justify; /* Sidebar moves to a new row above content */
+        text-align: justify; 
     }
 
     .new-sidebar {
-        width: 100%; /* Full width in a thin horizontal row */
+        width: 100%; 
         height: auto;
         border-right: none;
-        border-bottom: 4px solid #444; /* Add a border at the bottom */
+        border-bottom: 4px solid #444; 
         display: flex;
-        flex-direction: row; /* Items arrange horizontally */
+        flex-direction: row; 
         justify-content: space-around;
         align-items: center;
         padding: 0;
@@ -334,7 +334,7 @@ body{
         display: flex;
         flex-direction: row;
         justify-content: space-between;
-        width: 100%; /* Ensure menu items span evenly across the sidebar row */
+        width: 100%; 
     }
 
     .new-sidebar ul li {
@@ -342,7 +342,7 @@ body{
     }
 
     .new-sidebar ul li a {
-        font-size: 0.9rem; /* Reduce font size for better spacing */
+        font-size: 0.9rem;
         padding: 10px 5px;
     }
     .newsidemneu-icon{
@@ -356,17 +356,16 @@ body{
     }
 }
 
-/* For screens 575px and smaller */
 @media (max-width: 575px) {
     .favorites-container {
         flex-direction: column;
     }
 
     .new-sidebar {
-        width: 100%; /* Sidebar takes up full width of page */
-        flex-direction: column; /* Stack menu items vertically */
-        border-bottom: none; /* Remove row border */
-        height: auto; /* Let it adjust naturally based on content */
+        width: 100%; 
+        flex-direction: column; 
+        border-bottom: none; 
+        height: auto; 
         z-index: 99999;
     }
 
@@ -375,19 +374,19 @@ body{
         flex-direction: column;
         align-items: flex-start;
         justify-content: start;
-        width: 100%; /* Ensure it stretches the full width */
+        width: 100%; 
         padding: 0;
         margin: 0;
     }
 
     .new-sidebar ul li {
-        width: 100%; /* Full width menu items */
+        width: 100%; 
         margin-bottom: 1px;
     }
 
     .new-sidebar ul li a {
         font-size: 1rem;
-        padding: 10px 15px; /* Adjust for a clean stack layout */
+        padding: 10px 15px; 
     }
 
     .content-area {

@@ -14,7 +14,6 @@ body{
     font-weight: 400;
     font-style: normal;
 }
-/* Header Container */
 .header-container {
     display: flex;
     justify-content: space-between;
@@ -87,7 +86,7 @@ body{
     font-size: 1.3rem;
     transition: transform 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
 }
-/* Hamburger Button */
+
 .hamburger {
     display: none;
     position: absolute;
@@ -101,7 +100,7 @@ body{
     z-index: 101;
 }
 
-/* Sidebar */
+
 .sidebar {
     position: fixed;
     top: 0;
@@ -191,7 +190,6 @@ body{
     }
 }
 
-/* Underline Animation */
 .underline_animation {
     font-size: 1.1rem; 
     color: #d4d4d4;
@@ -273,7 +271,6 @@ body{
     background-color: rgb(255, 255, 255);
     color: rgb(0, 0, 0); 
 }
-/* Responsive */
 @media (max-width: 768px) {
     .center-nav,
     .right-nav {
@@ -313,12 +310,10 @@ body{
     }
 }
 /*-------------Footer----------------------*/
-/* Footer Styling */
 footer {
     background: linear-gradient(180deg, #1a1a1a, #000000cc); 
     color: #f0f0f0; 
     padding: 2rem 0;
-    /* margin-top: 2rem;  */
     text-align: center;
     border-top: 6px solid #1a1a1a; 
     box-shadow: 0 -8px 16px rgba(0, 0, 0, 0.5), 
@@ -377,7 +372,6 @@ footer {
     color: #d4d4d4;
 }
 
-/* Responsive Styles for Footer */
 @media (max-width: 768px) {
     .footer-container {
         flex-direction: column;

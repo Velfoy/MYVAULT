@@ -55,7 +55,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])&& $_POST['a
             });
             $_SESSION['recent_likes'] = array_values($_SESSION['recent_likes']);
 
-            // Prepare response
             $response = [
                 'success' => true,
                 'recent_likes_count' => count($_SESSION['recent_likes']),
@@ -93,8 +92,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])&& $_POST['a
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'delete') {
     $recipe_id = intval($_POST['recipes_id']); 
     $user_id = $_SESSION['user_id']; 
-
-    // Check if the user is the owner or an admin
     $check_owner_sql = "SELECT user_id FROM recipes WHERE id_recipes = ?";
     $check_owner_stmt = $conn->prepare($check_owner_sql);
     $check_owner_stmt->bind_param('i', $recipe_id);
@@ -110,18 +107,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
     if ($check_owner_result->num_rows > 0) {
         $owner_row = $check_owner_result->fetch_assoc();
         $role_permission = $check_role_result->fetch_assoc();
-
-        // Check if user has permission to delete
         if ($owner_row['user_id'] == $user_id || $role_permission['Role'] == 'admin') {
-
-            // Delete all reviews associated with this recipe
             $delete_reviews_sql = "DELETE FROM reviews WHERE recipe_id = ?";
             $delete_reviews_stmt = $conn->prepare($delete_reviews_sql);
             $delete_reviews_stmt->bind_param('i', $recipe_id);
             $delete_reviews_stmt->execute();
             $delete_reviews_stmt->close();
 
-            // Now delete the recipe itself
             $delete_recipe_sql = "DELETE FROM recipes WHERE id_recipes = ?";
             $delete_recipe_stmt = $conn->prepare($delete_recipe_sql);
             $delete_recipe_stmt->bind_param('i', $recipe_id);
@@ -145,67 +137,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
 }
 
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && 
-    in_array($_POST['action'], ['rating_1', 'rating_2', 'rating_3', 'rating_4', 'rating_5'])) {
-
-    $recipe_id = intval($_POST['recipe_id']); 
-    $user_id = intval($_SESSION['user_id']);
-    $rating = intval(substr($_POST['action'], -1));
-    
-    // Prepare the response array
-    $response = [];
-
-    // Check if a rating already exists for this user and recipe
-    $check_sql = "SELECT rating FROM reviews WHERE user_id = ? AND recipe_id = ?";
-    $check_stmt = $conn->prepare($check_sql);
-    $check_stmt->bind_param('ii', $user_id, $recipe_id);
-    $check_stmt->execute();
-    $check_stmt->store_result();
-
-    if ($check_stmt->num_rows > 0) {
-        // Update the existing rating
-        $update_sql = "UPDATE reviews SET rating = ? WHERE user_id = ? AND recipe_id = ?";
-        $update_stmt = $conn->prepare($update_sql);
-        $update_stmt->bind_param('iii', $rating, $user_id, $recipe_id);
-
-        if ($update_stmt->execute()) {
-            $response = ['success' => true, 'message' => 'Rating successfully updated!'];
-        } else {
-            $response = ['success' => false, 'error' => 'Error updating rating: ' . $update_stmt->error];
-        }
-
-        $update_stmt->close();
-    } else {
-        // Insert a new rating
-        $insert_sql = "INSERT INTO reviews (user_id, rating, recipe_id) VALUES (?, ?, ?)";
-        $insert_stmt = $conn->prepare($insert_sql);
-        $insert_stmt->bind_param('iii', $user_id, $rating, $recipe_id);
-
-        if ($insert_stmt->execute()) {
-            $response = ['success' => true, 'message' => 'Rating successfully saved!'];
-        } else {
-            $response = ['success' => false, 'error' => 'Error saving rating: ' . $insert_stmt->error];
-        }
-
-        $insert_stmt->close();
-    }
-
-    // Close the check statement and return JSON response
-    $check_stmt->close();
-    echo json_encode($response);
-    exit;
-}
-
-
-$recipes_per_page = 2; // Number of recipes per page
+$recipes_per_page = 2; 
 $current_page = isset($_GET['page']) ? intval($_GET['page']) : 1; // Current page
-$offset = ($current_page - 1) * $recipes_per_page; // Calculate offset
-
-// Sanitize and retrieve filter/search variables
+$offset = ($current_page - 1) * $recipes_per_page; 
 $search_title = isset($_GET['search_title']) ? '%' . sanitize_input($_GET['search_title']) . '%' : null;
 $sort = isset($_GET['filter']) ? sanitize_input($_GET['filter']) : null; // Retrieve sort variable
 
-// Base SQL Query for Recipes with Average Rating and Filters
 $sql = "
     SELECT recipes.*, 
            COALESCE(AVG(reviews.rating), 0) AS average_rating
@@ -217,17 +154,14 @@ $sql = "
 $params = [$_SESSION['user_id']];
 $types = "i";
 
-// Add search by title
 if ($search_title) {
     $sql .= " AND recipes.title LIKE ?";
     $params[] = $search_title;
     $types .= "s";
 }
 
-// Group the results
 $sql .= " GROUP BY recipes.id_recipes";
 
-// Sorting logic
 if ($sort) {
     switch ($sort) {
         case 'az':
@@ -237,35 +171,31 @@ if ($sort) {
             $sql .= " ORDER BY recipes.title DESC";
             break;
         case 'newest':
-            $sql .= " ORDER BY recipes.created_at DESC"; // Assuming 'created_at' is a valid column in your recipes table
+            $sql .= " ORDER BY recipes.created_at DESC"; 
             break;
         case 'oldest':
-            $sql .= " ORDER BY recipes.created_at ASC"; // Assuming 'created_at' is a valid column in your recipes table
+            $sql .= " ORDER BY recipes.created_at ASC"; 
             break;
         case 'none':
-            // No specific order will keep the default sorting, so no changes needed.
             break;
         default:
-            $sql .= " ORDER BY recipes.created_at DESC"; // Default sorting
+            $sql .= " ORDER BY recipes.created_at DESC"; 
             break;
     }
 } else {
-    $sql .= " ORDER BY recipes.created_at DESC"; // Default sorting
+    $sql .= " ORDER BY recipes.created_at DESC"; 
 }
 
-// Add LIMIT and OFFSET for pagination
 $sql .= " LIMIT ? OFFSET ?";
-$params[] = $recipes_per_page; // Number of records per page
-$params[] = $offset; // Offset for pagination
+$params[] = $recipes_per_page; 
+$params[] = $offset; 
 $types .= "ii"; 
 
-// Prepare, Bind Parameters, and Execute
 $stmt = $conn->prepare($sql);
 $stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
 
-// Fetch total number of recipes for pagination calculation
 $total_sql = "
     SELECT COUNT(*) as total 
     FROM recipes
@@ -275,7 +205,6 @@ $total_sql = "
 $total_params = [$_SESSION['user_id']];
 $total_types = "i";
 
-// Add search by title to the total count query
 if ($search_title) {
     $total_sql .= " AND recipes.title LIKE ?";
     $total_params[] = $search_title;
@@ -380,51 +309,52 @@ if (isset($_SESSION['user_id'])) {
             });
 
             $(document).on('click', '.star-rating span', function () {
-                var star = $(this);
-                var itemId = star.closest('.star-rating').data('item-id');
-                var itemType = star.closest('.star-rating').data('item-type');
-                var rating = star.data('rating');
+            var star = $(this);
+            var itemId = star.closest('.star-rating').data('item-id');
+            var itemType = star.closest('.star-rating').data('item-type');
+            var rating = star.data('rating');
 
-                $.ajax({
-                    url: 'favourite.php',
-                    type: 'POST',
-                    data: {
-                        item_id: itemId,
-                        action: 'rating_' + itemType + '_' + rating,
-                        rating: rating
-                    },
-                    success: function (response) {
-                        var data = JSON.parse(response);
-                        if (data.success) {
-                            console.log('Rating successful');
-                            
-                            var newRating = (data.new_average_rating == 0 || isNaN(data.new_average_rating)) ? rating : parseFloat(data.new_average_rating);
-                            if (isNaN(newRating)) {
-                                newRating = 0;
-                            }
-                            $('p.rating-value[data-item-id="' + itemId + '"]').text(" Average Rating: "+newRating.toFixed(2));
-                            var fullStars = Math.floor(newRating);
-                            var halfStar = (newRating - fullStars >= 0.5);
-                            var starsHtml = '';
-                            for (var i = 1; i <= 5; i++) {
-                                if (i <= fullStars) {
-                                    starsHtml += '<span class="bi bi-star-fill full-star" data-rating="' + i + '" title="Rating: ' + newRating + '"></span>';
-                                } else if (i === fullStars + 1 && halfStar) {
-                                    starsHtml += '<span class="bi bi-star-half star-half" data-rating="' + i + '" title="Rating: ' + newRating + '"></span>';
-                                } else {
-                                    starsHtml += '<span class="bi bi-star empty-star" data-rating="' + i + '" title="Rating: ' + newRating + '"></span>';
-                                }
-                            }
-                            $('.star-rating[data-item-id="' + itemId + '"]').html(starsHtml);
-                        } else {
-                            alert('Error: ' + data.error);
+            var action = 'rating_' + itemType + '_' + rating;
+            
+            $.ajax({
+                url: 'favourite.php',
+                type: 'POST',
+                data: {
+                    item_id: itemId,
+                    action: action,
+                    rating: rating
+                },
+                success: function (response) {
+                    var data = JSON.parse(response);
+                    if (data.success) {
+                        console.log('Success');
+                        var newRating = (isNaN(data.new_average_rating) || data.new_average_rating === 0) ? rating : parseFloat(data.new_average_rating);
+                        $('p.rating-value[data-item-id="' + itemId + '"]').text(" Average Rating: "+newRating.toFixed(2));
+                        var fullStars = Math.floor(newRating);
+                        var halfStar = (newRating - fullStars >= 0.5);
+                        var emptyStars = 5 - fullStars - (halfStar ? 1 : 0); 
+
+                        var starsHtml = '';
+                        for (var i = 0; i < fullStars; i++) {
+                            starsHtml += '<span class="bi bi-star-fill full-star" data-rating="' + (i + 1) + '" title="Rating: ' + newRating + '"></span>';
                         }
-                    },
-                    error: function () {
-                        alert('An error occurred while processing your request.');
+                        if (halfStar) {
+                            starsHtml += '<span class="bi bi-star-half star-half" data-rating="' + (fullStars + 1) + '" title="Rating: ' + newRating + '"></span>';
+                        }
+                        for (var i = 0; i < emptyStars; i++) {
+                            starsHtml += '<span class="bi bi-star empty-star" data-rating="' + (fullStars + halfStar + i + 1) + '" title="Rating: ' + newRating + '"></span>';
+                        }
+                        $('.star-rating[data-item-id="' + itemId + '"][data-item-type="' + itemType + '"]').html(starsHtml);
+                        $('.star-rating[data-item-id="' + itemId + '"][data-item-type="' + itemType + '"]').addClass('clicked');
+                    } else {
+                        alert('Error: ' + data.error);
                     }
-                });
+                },
+                error: function () {
+                    alert('An error occurred while processing your request.');
+                }
             });
+        });
 
 
 
@@ -708,21 +638,16 @@ if (isset($_SESSION['user_id'])) {
         </ul>
         <div class="pagination-container">
     <?php if ($total_pages > 1): ?>
-        <!-- First Page Link -->
         <?php if ($current_page > 1): ?>
             <a href="?page=1&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&filter=<?php echo urlencode($_GET['filter'] ?? ''); ?>">
                 <i class="fas fa-angle-double-left"></i>
             </a>
         <?php endif; ?>
-
-        <!-- Previous Page Link -->
         <?php if ($current_page > 1): ?>
             <a href="?page=<?php echo $current_page - 1; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&filter=<?php echo urlencode($_GET['filter'] ?? ''); ?>">
                 <i class="fas fa-angle-left"></i>
             </a>
         <?php endif; ?>
-
-        <!-- Page Numbers -->
         <?php 
         $start_page = max(1, $current_page - 1); 
         $end_page = min($total_pages, $current_page + 1);
@@ -734,14 +659,12 @@ if (isset($_SESSION['user_id'])) {
             </a>
         <?php endfor; ?>
 
-        <!-- Next Page Link -->
         <?php if ($current_page < $total_pages): ?>
             <a href="?page=<?php echo $current_page + 1; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&filter=<?php echo urlencode($_GET['filter'] ?? ''); ?>">
                 <i class="fas fa-angle-right"></i>
             </a>
         <?php endif; ?>
 
-        <!-- Last Page Link -->
         <?php if ($current_page < $total_pages): ?>
             <a href="?page=<?php echo $total_pages; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&filter=<?php echo urlencode($_GET['filter'] ?? ''); ?>">
                 <i class="fas fa-angle-double-right"></i>

@@ -146,11 +146,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $lastName = sanitize_input($_POST['lastName']);
         $username = sanitize_input($_POST['username']);
         $email = sanitize_input($_POST['email']);
-        $number = sanitize_input($_POST['number']); // New field
-        $role = sanitize_input($_POST['role']); // New field
+        $number = sanitize_input($_POST['number']); 
+        $role = sanitize_input($_POST['role']); 
         $user_id = $_SESSION['user_id'];
     
-        $dest_path = null; // Initialize to handle optional image upload
+        $dest_path = null; 
         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
             $fileTmpPath = $_FILES['image']['tmp_name'];
             $fileName = uniqid() . '_' . basename($_FILES['image']['name']);
@@ -162,8 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
         }
-    
-        // SQL to update fields and conditionally update Image_Link
+
         $sql_update_user = "UPDATE users 
                             SET First_Name = ?, Last_Name = ?, username = ?, email = ?, Number = ?, Role = ?, 
                             Image_Link = IF(? IS NOT NULL, ?, Image_Link) 
@@ -259,14 +258,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
 }
 
-// Fetch user information
 $sql_user = "SELECT * FROM users WHERE ID_USER = ?";
 $stmt_user = $conn->prepare($sql_user);
 $stmt_user->bind_param('i', $_SESSION['user_id']);
 $stmt_user->execute();
 $user = $stmt_user->get_result()->fetch_assoc();
 
-// Fetch list of users for admin
 $sql_users_list = "SELECT * FROM users WHERE Role=? OR Role=?";
 $stmt_users_list = $conn->prepare($sql_users_list);
 $role_user = "user";
@@ -275,7 +272,6 @@ $stmt_users_list->bind_param('ss', $role_user, $role_admin);
 $stmt_users_list->execute();
 $users_list = $stmt_users_list->get_result();
 
-// Fetch categories for dropdown
 $sql_categories = "SELECT * FROM categories";
 $stmt_categories = $conn->prepare($sql_categories);
 $stmt_categories->execute();
@@ -773,11 +769,9 @@ if (isset($_SESSION['user_id'])) {
                 <div class="container_for_all">
                     <input type="hidden" id="action" name="action" value="update_user">
 
-                    <!-- User Info Header -->
                     <div class="col_us">
                         <div class="user_Header">User Information</div>
 
-                        <!-- Profile Image -->
                         <div class="image-container">
                             <div class="image-wrapper">
                                 <?php if (!empty($user['Image_Link'])): ?>
@@ -794,16 +788,13 @@ if (isset($_SESSION['user_id'])) {
                         </div>
                     </div>
 
-                    <!-- User Information -->
                     <div class="div_info_user " style="margin-top:20px;">
-                        <!-- Username -->
                         <div class="width_long row_info_user">
                             <label for="username">Username:</label>
                             <span id="usernameDisplay"><?php echo htmlspecialchars($user['username']); ?></span>
                             <input type="text" id="username" name="username" value="<?php echo htmlspecialchars($user['username']); ?>" class="hidden">
                         </div>
 
-                        <!-- Last Name -->
                          <div  class="col_respons" style="display:flex;flex-direction:row;">
                             <div class="row_info_user">
                                 <label for="lastName">Last Name:</label>
@@ -811,7 +802,6 @@ if (isset($_SESSION['user_id'])) {
                                 <input type="text" id="lastName" name="lastName" value="<?php echo htmlspecialchars($user['Last_Name']); ?>" class="hidden">
                             </div>
 
-                            <!-- First Name -->
                             <div class="row_info_user">
                                 <label for="firstName">First Name:</label>
                                 <span id="firstNameDisplay"><?php echo htmlspecialchars($user['First_Name']); ?></span>
@@ -819,14 +809,13 @@ if (isset($_SESSION['user_id'])) {
                             </div>
                          </div>
                          <div  class="col_respons" style="display:flex;flex-direction:row;">
-                            <!-- Email -->
+
                             <div class="row_info_user">
                                 <label for="email">Email:</label>
                                 <span id="emailDisplay"><?php echo htmlspecialchars($user['email']); ?></span>
                                 <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="hidden">
                             </div>
 
-                            <!-- Phone Number -->
                             <div class="row_info_user">
                                 <label for="number">Phone Number:</label>
                                 <span id="numberDisplay"><?php echo htmlspecialchars($user['Number']); ?></span>
@@ -835,7 +824,6 @@ if (isset($_SESSION['user_id'])) {
                          </div>
                         
 
-                        <!-- Role -->
                         <div class="width_long row_info_user">
                             <label for="role">Role:</label>
                             <span id="roleDisplay"><?php echo htmlspecialchars($user['Role']); ?></span>
@@ -847,7 +835,6 @@ if (isset($_SESSION['user_id'])) {
                     </div>
                 </div>
 
-                <!-- Buttons -->
                 <div class="buttons_div">
                     <button type="button" id="passwordChangeButton">Change password</button>
                     <button type="button" id="editButton">Edit</button>
@@ -903,14 +890,12 @@ if (isset($_SESSION['user_id'])) {
     <?php if ($user['Role'] === 'admin'): ?>
         <div class="admin-container">
             <h2 class="admin_header">Admin Features</h2>
-            <!-- Users List -->
             <div class="user-list-container">
                 <h2>Users list</h2>
                 <ul>
                     <?php while ($user_list = $users_list->fetch_assoc()): ?>
                         <?php if($user_list['ID_USER'] != $_SESSION['user_id']): ?>
                             <li class="user-item">
-                                <!-- User Image -->
                                  <div class="info_list_user">
                                     <div class="user-image">
                                         <?php if (!empty($user_list['Image_Link'])): ?>
@@ -927,7 +912,6 @@ if (isset($_SESSION['user_id'])) {
 
                                  </div>
                                 <div class="buttons_user_list">
-                                    <!-- Form to Change User Role -->
                                     <form action="user.php" method="POST" class="role-form">
                                         <input type="hidden" name="action" value="change_user_role">
                                         <input type="hidden" name="user_id" value="<?php echo $user_list['ID_USER']; ?>">

@@ -63,7 +63,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book_id'])&&isset($_P
             });
             $_SESSION['recent_likes'] = array_values($_SESSION['recent_likes']);
 
-            // Prepare response
             $response = [
                 'success' => true,
                 'recent_likes_count' => count($_SESSION['recent_likes']),
@@ -137,77 +136,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
     echo json_encode($response);
     exit;
 }
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && 
-    in_array($_POST['action'], ['rating_1', 'rating_2', 'rating_3', 'rating_4', 'rating_5'])) {
-
-    $book_id = intval($_POST['book_id']); 
-    $user_id = intval($_SESSION['user_id']);
-    $rating = intval(substr($_POST['action'], -1));
-    
-    // Prepare the response array
-    $response = [];
-
-    // Check if a rating already exists for this user and book
-    $check_sql = "SELECT rating FROM reviews WHERE user_id = ? AND id_book = ?";
-    $check_stmt = $conn->prepare($check_sql);
-    $check_stmt->bind_param('ii', $user_id, $book_id);
-    $check_stmt->execute();
-    $check_stmt->store_result();
-
-    if ($check_stmt->num_rows > 0) {
-        // Update the existing rating
-        $update_sql = "UPDATE reviews SET rating = ? WHERE user_id = ? AND id_book = ?";
-        $update_stmt = $conn->prepare($update_sql);
-        $update_stmt->bind_param('iii', $rating, $user_id, $book_id);
-
-        if ($update_stmt->execute()) {
-            $response = ['success' => true, 'message' => 'Rating successfully updated!'];
-        } else {
-            $response = ['success' => false, 'error' => 'Error updating rating: ' . $update_stmt->error];
-        }
-
-        $update_stmt->close();
-    } else {
-        // Insert a new rating
-        $insert_sql = "INSERT INTO reviews (user_id, rating, id_book) VALUES (?, ?, ?)";
-        $insert_stmt = $conn->prepare($insert_sql);
-        $insert_stmt->bind_param('iii', $user_id, $rating, $book_id);
-
-        if ($insert_stmt->execute()) {
-            $response = ['success' => true, 'message' => 'Rating successfully saved!'];
-        } else {
-            $response = ['success' => false, 'error' => 'Error saving rating: ' . $insert_stmt->error];
-        }
-
-        $insert_stmt->close();
-    }
-
-    // Close the check statement and return JSON response
-    $check_stmt->close();
-    echo json_encode($response);
-    exit;
-}
 
 
 
 
-// Fetch categories
+
 $sql_categories = "SELECT Name FROM categories";
 $stmt_categories = $conn->prepare($sql_categories);
 $stmt_categories->execute();
 $categories_result = $stmt_categories->get_result();
 $categories = $categories_result->fetch_all(MYSQLI_ASSOC);
-// Check if search filters are set
-$books_per_page = 8; // Number of books per page
+$books_per_page = 8; 
 $current_page = isset($_GET['page']) ? intval($_GET['page']) : 1; // Current page
-$offset = ($current_page - 1) * $books_per_page; // Calculate offset
-
-// Sanitize and retrieve filter/search variables
+$offset = ($current_page - 1) * $books_per_page; 
 $search_title = isset($_GET['search_title']) ? '%' . sanitize_input($_GET['search_title']) . '%' : null;
 $search_category = isset($_GET['search_category']) && $_GET['search_category'] !== '' ? sanitize_input($_GET['search_category']) : null;
 $filter = isset($_GET['filter']) ? sanitize_input($_GET['filter']) : null;
 
-// SQL Query for Books with Search and Filter
 $sql = "
     SELECT books.*, 
            COALESCE(AVG(reviews.rating), 0) AS average_rating
@@ -220,24 +165,20 @@ $sql = "
 $params = [$_SESSION['user_id']];
 $types = "i"; 
 
-// Add search by title
 if ($search_title) {
     $sql .= " AND books.title LIKE ?";
     $params[] = $search_title;
     $types .= "s";
 }
 
-// Add search by category
 if ($search_category) {
     $sql .= " AND categories.Name = ?";
     $params[] = $search_category;
     $types .= "s";
 }
 
-// Group the results
 $sql .= " GROUP BY books.id";
 
-// Sorting logic
 if ($filter) {
     switch ($filter) {
         case 'az':
@@ -260,10 +201,9 @@ if ($filter) {
     $sql .= " ORDER BY books.created_at DESC"; 
 }
 
-// Add LIMIT and OFFSET for pagination
 $sql .= " LIMIT ? OFFSET ?";
-$params[] = $books_per_page; // Number of records per page
-$params[] = $offset; // Offset for pagination
+$params[] = $books_per_page; 
+$params[] = $offset; 
 $types .= "ii"; 
 
 $stmt = $conn->prepare($sql);
@@ -271,7 +211,6 @@ $stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
 
-// Fetch total number of books for pagination calculation
 $total_sql = "
     SELECT COUNT(*) as total 
     FROM books
@@ -282,14 +221,12 @@ $total_sql = "
 $total_params = [$_SESSION['user_id']];
 $total_types = "i";
 
-// Add search by title
 if ($search_title) {
     $total_sql .= " AND books.title LIKE ?";
     $total_params[] = $search_title;
     $total_types .= "s";
 }
 
-// Add search by category
 if ($search_category) {
     $total_sql .= " AND categories.Name = ?";
     $total_params[] = $search_category;
@@ -783,161 +720,6 @@ if (isset($_SESSION['user_id'])) {
             <?php endif; ?>
         </div>
     </div>
-    
-
-    <!-- <h2>Your Books</h2>
-    <form method="POST" action="books.php" enctype="multipart/form-data">
-        <input type="hidden" name="action" value="add_book">
-        
-        <label for="title">Title:</label>
-        <input type="text" name="title" required>
-
-        <label for="author">Author:</label>
-        <input type="text" name="author" required>
-
-        <label for="description">Description:</label>
-        <textarea name="description" required></textarea>
-
-        <label for="category">Category:</label>
-        <select id="category" name="category" required>
-            <option value="">Select a category</option>
-            <?php foreach ($categories as $category): ?>
-                <option value="<?php echo htmlspecialchars($category['Name']); ?>"><?php echo htmlspecialchars($category['Name']); ?></option>
-            <?php endforeach; ?>
-        </select>
-
-        <label for="image">Image</label>
-        <input type="file" id="image" name="image" accept="image/*" required>
-        
-        <button type="submit">Add Book</button>
-    </form>
-    <h3>Search Books</h3>
-    <form method="GET" action="books.php">
-        <label for="search_title">Title:</label>
-        <input type="text" name="search_title" placeholder="Enter part of the title" value="<?php echo isset($_GET['search_title']) ? htmlspecialchars($_GET['search_title']) : ''; ?>">
-
-        <label for="search_category">Category:</label>
-        <select name="search_category">
-            <option value="">Select a category</option>
-            <?php foreach ($categories as $category): ?>
-                <option value="<?php echo htmlspecialchars($category['Name']); ?>" <?php echo (isset($_GET['search_category']) && $_GET['search_category'] == htmlspecialchars($category['Name'])) ? 'selected' : ''; ?>>
-                    <?php echo htmlspecialchars($category['Name']); ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-
-        <label for="filter">Sort By:</label>
-        <select name="filter">
-            <option value="">Select sorting option</option>
-            <option value="az" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'az') ? 'selected' : ''; ?>>Title (A-Z)</option>
-            <option value="za" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'za') ? 'selected' : ''; ?>>Title (Z-A)</option>
-            <option value="newest" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'newest') ? 'selected' : ''; ?>>Newest First</option>
-            <option value="oldest" <?php echo (isset($_GET['filter']) && $_GET['filter'] === 'oldest') ? 'selected' : ''; ?>>Oldest First</option>
-        </select>
-        
-        <button type="submit">Search</button>
-    </form>
-    <?php if (isset($_GET['search_title']) || (isset($_GET['search_category']) && $_GET['search_category'] !== '') || isset($_GET['filter'])): ?>
-        <p><strong>Currently Viewing:</strong>
-            <?php if (isset($_GET['search_title']) && $_GET['search_title'] !== ''): ?>
-                Title containing "<em><?php echo htmlspecialchars($_GET['search_title']); ?></em>"
-            <?php endif; ?>
-            <?php if (isset($_GET['search_category']) && $_GET['search_category'] !== ''): ?>
-                <?php echo isset($_GET['search_title']) && $_GET['search_title'] !== '' ? ' and ' : ''; ?>
-                Category "<em><?php echo htmlspecialchars($_GET['search_category']); ?></em>"
-            <?php endif; ?>
-            <?php if (isset($_GET['filter'])): ?>
-                <?php
-                if (isset($_GET['search_title']) || isset($_GET['search_category'])) {
-                    echo ' sorted by ';
-                }
-                switch ($_GET['filter']) {
-                    case 'az':
-                        echo 'Title (A-Z)';
-                        break;
-                    case 'za':
-                        echo 'Title (Z-A)';
-                        break;
-                    case 'newest':
-                        echo 'Newest First';
-                        break;
-                    case 'oldest':
-                        echo 'Oldest First';
-                        break;
-                    default:
-                        break;
-                }
-                ?>
-            <?php endif; ?>
-        </p>
-    <?php endif; ?>
-
-    <h3>Book List</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Title</th>
-                <th>Author</th>
-                <th>Description</th>
-                <th>Image</th>
-                <th>Like</th>
-                <th>Delete</th>
-                <th>Rating</th>
-                <th>Average Rating</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php while ($book = $result->fetch_assoc()): ?>
-                <tr>
-                    <td><?php echo htmlspecialchars($book['title']); ?></td>
-                    <td><?php echo htmlspecialchars($book['author']); ?></td>
-                    <td><?php echo htmlspecialchars($book['description']); ?></td>
-                    <td>
-                        <?php if (!empty($book['image_link'])): ?>
-                            <img src="<?php echo htmlspecialchars($book['image_link']); ?>" alt="Book Image" style="width:50px;height:auto;">
-                        <?php else: ?>
-                            No Image
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <button class="toggle_favourite" data-book-id="<?php echo $book['id']; ?>" data-liked="<?php echo $book['like']; ?>">
-                            <?php 
-                                $user_id = $_SESSION['user_id'];
-                                $item_type = "book";
-                                $stmt_liked = $conn->prepare("SELECT * FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?");
-                                $stmt_liked->bind_param('iis', $user_id, $book['id'], $item_type);
-                                $stmt_liked->execute();
-                                $liked_result = $stmt_liked->get_result();
-                                echo ($liked_result->num_rows > 0) ? 'Remove from Favourite' : 'Add to Favourite';
-                                $stmt_liked->close();
-                            ?>
-                        </button>
-                    </td>
-                    <td>
-                        <button class="delete_book_from_db" data-book-id="<?php echo $book['id']; ?>">
-                            Delete
-                        </button>
-                    </td>
-                    <td>
-                        <button class="rating_book_1" data-book-id="<?php echo $book['id']; ?>">1</button>
-                        <button class="rating_book_2" data-book-id="<?php echo $book['id']; ?>">2</button>
-                        <button class="rating_book_3" data-book-id="<?php echo $book['id']; ?>">3</button>
-                        <button class="rating_book_4" data-book-id="<?php echo $book['id']; ?>">4</button>
-                        <button class="rating_book_5" data-book-id="<?php echo $book['id']; ?>">5</button>
-                    </td>
-                    <td><?php echo number_format($book['average_rating'], 2); ?></td>
-                </tr>
-            <?php endwhile; ?>
-        </tbody>
-    </table>
-
-    <div class="pagination">
-    <?php if ($total_pages > 1): ?>
-        <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-            <a href="?page=<?php echo $i; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>" <?php if ($i == $current_page) echo 'class="active"'; ?>><?php echo $i; ?></a>
-        <?php endfor; ?>
-    <?php endif; ?>
-</div> -->
 <footer>
     <div class="footer-container">
         <div class="footer-left">

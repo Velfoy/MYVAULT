@@ -709,21 +709,17 @@ if (isset($_SESSION['user_id'])) {
         </ul>
         <div class="pagination-container">
             <?php if ($total_pages > 1): ?>
-                <!-- Link to the First Page -->
                 <?php if ($current_page > 1): ?>
                     <a href="?page=1&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>">
                         <i class="fas fa-angle-double-left"></i>
                     </a>
                 <?php endif; ?>
-
-                <!-- Link to the Previous Page -->
                 <?php if ($current_page > 1): ?>
                     <a href="?page=<?php echo $current_page - 1; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>">
                         <i class="fas fa-angle-left"></i>
                     </a>
                 <?php endif; ?>
 
-                <!-- Display Only 3 Pages -->
                 <?php 
                 $start_page = max(1, $current_page - 1); 
                 $end_page = min($total_pages, $current_page + 1);
@@ -734,14 +730,12 @@ if (isset($_SESSION['user_id'])) {
                     </a>
                 <?php endfor; ?>
 
-                <!-- Link to the Next Page -->
                 <?php if ($current_page < $total_pages): ?>
                     <a href="?page=<?php echo $current_page + 1; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>">
                         <i class="fas fa-angle-right"></i>
                     </a>
                 <?php endif; ?>
 
-                <!-- Link to the Last Page -->
                 <?php if ($current_page < $total_pages): ?>
                     <a href="?page=<?php echo $total_pages; ?>&search_title=<?php echo urlencode($_GET['search_title'] ?? ''); ?>&search_category=<?php echo urlencode($_GET['search_category'] ?? ''); ?>&filter=<?php echo $filter; ?>">
                         <i class="fas fa-angle-double-right"></i>
