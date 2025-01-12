@@ -2,14 +2,23 @@
 session_start();
 include 'includes/functions.php';
 include 'includes/db.php';
-check_login();
+//check_login();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_book') {
-    $title = sanitize_input($_POST['title']);
-    $author = sanitize_input($_POST['author']);
-    $description = sanitize_input($_POST['description']);
-    $category = sanitize_input($_POST['category']);
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die("Invalid CSRF token");
+    }
+
+    function sanitize_input_book($data) {
+        return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
+    }
+
+    $title = sanitize_input_book($_POST['title']);
+    $author = sanitize_input_book($_POST['author']);
+    $description = sanitize_input_book($_POST['description']);
+    $category = sanitize_input_book($_POST['category']);
     $user_id = $_SESSION['user_id'];
+
     $sql_category = "SELECT id_category FROM categories WHERE Name=?";
     $stmt_category = $conn->prepare($sql_category);
     $stmt_category->bind_param('s', $category);
@@ -19,83 +28,136 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     if ($result_category->num_rows > 0) {
         $row_category = $result_category->fetch_assoc();
         $category_id = $row_category['id_category'];
+
         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
             $fileTmpPath = $_FILES['image']['tmp_name'];
-            $fileName = $_FILES['image']['name'];
+            $fileName = basename($_FILES['image']['name']);
+            $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+
+            if (!in_array($fileExtension, $allowedExtensions)) {
+                die("Invalid file type");
+            }
+
+            $newFileName = uniqid('book_', true) . '.' . $fileExtension;
             $uploadFileDir = 'uploads/books/';
-            $dest_path = $uploadFileDir . basename($fileName);
+            $dest_path = $uploadFileDir . $newFileName;
+
             if (move_uploaded_file($fileTmpPath, $dest_path)) {
                 $sql = "INSERT INTO books (title, author, description, Category_id, user_id, visibility, image_link) VALUES (?, ?, ?, ?, ?, 0, ?)";
                 $stmt = $conn->prepare($sql);
                 $stmt->bind_param('sssiss', $title, $author, $description, $category_id, $user_id, $dest_path);
 
-                if (!$stmt->execute()) {
+                if ($stmt->execute()) {
+                    // echo "Book added successfully!";
+                } else {
                     echo "Error adding book: " . $stmt->error;
                 }
             } else {
-                echo "Error moving the uploaded file. Check permissions on the upload directory.";
+                die("Error moving the uploaded file");
             }
         } else {
-            echo "Error uploading the image: " . $_FILES['image']['error'];
+            die("Error uploading the image");
         }
     } else {
-        echo "Category not found!";
+        die("Category not found");
     }
 }
 
-// Handle AJAX request to toggle 'like' status
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book_id'])&&isset($_POST['action'])&& $_POST['action'] === 'like' ) {
+// Generate CSRF token if not set
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book_id']) && isset($_POST['action']) && $_POST['action'] === 'like') {
     $book_id = $_POST['book_id'];
-    $user_id = $_SESSION['user_id'];
-    $item_type = "book";
-    $stmt = $conn->prepare("SELECT * FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?");
-    $stmt->bind_param('iis', $user_id, $book_id, $item_type);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $response = ['success' => false];
 
-    if ($result->num_rows > 0) {
-        $delete_stmt = $conn->prepare("DELETE FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?");
-        $delete_stmt->bind_param('iis', $user_id, $book_id, $item_type);
-        
-        if ($delete_stmt->execute()) {
-            $_SESSION['recent_likes'] = array_filter($_SESSION['recent_likes'], function($like) use ($book_id, $item_type) {
-                return !($like['item_id'] == $book_id && $like['item_type'] == $item_type);
+    if (isset($_SESSION['user_id'])) {
+        // Handle database operations for logged-in users
+        $user_id = $_SESSION['user_id'];
+        $item_type = 'book';
+
+        // Check if the book is already in the 'likes' table
+        $stmt = $conn->prepare("SELECT * FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?");
+        $stmt->bind_param('iis', $user_id, $book_id, $item_type);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result->num_rows > 0) {
+            // Remove from favourites
+            $delete_stmt = $conn->prepare("DELETE FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?");
+            $delete_stmt->bind_param('iis', $user_id, $book_id, $item_type);
+            $delete_stmt->execute();
+            $_SESSION['recent_likes'] = array_filter($_SESSION['recent_likes'], function($favourite) use ($book_id) {
+                return $favourite['item_id'] !== $book_id;
             });
-            $_SESSION['recent_likes'] = array_values($_SESSION['recent_likes']);
 
             $response = [
                 'success' => true,
+                'liked' => false,
                 'recent_likes_count' => count($_SESSION['recent_likes']),
-                'liked' => false
+                'logged_in' => true
             ];
         } else {
-            $response = ['success' => false, 'error' => 'Could not delete item.'];
-        }
-        $delete_stmt->close();
-    } else {
-        $insert_stmt = $conn->prepare("INSERT INTO likes (user_id, item_id, item_type) VALUES (?, ?, ?)");
-        $insert_stmt->bind_param('iis', $user_id, $book_id, $item_type);
-        
-        if ($insert_stmt->execute()) {
-            $_SESSION['recent_likes'][] = [
-                'item_id' => $book_id,
-                'item_type' => $item_type,
-                'timestamp' => time()
-            ];
+            // Add to favourites
+            $insert_stmt = $conn->prepare("INSERT INTO likes (user_id, item_id, item_type) VALUES (?, ?, ?)");
+            $insert_stmt->bind_param('iis', $user_id, $book_id, $item_type);
+            $insert_stmt->execute();
+            $_SESSION['recent_likes'][] = ['item_id' => $book_id, 'item_type' => 'book', 'timestamp' => time()];
+
             $response = [
                 'success' => true,
+                'liked' => true,
                 'recent_likes_count' => count($_SESSION['recent_likes']),
-                'liked' => true
+                'logged_in' => true
+            ];
+        }
+    } else {
+        // If logged out, handle cookies or local storage
+        if (isset($_COOKIE['favourites'])) {
+            $favourites = json_decode($_COOKIE['favourites'], true);
+        } else {
+            $favourites = [];
+        }
+
+        // Check if the book is in the favourites
+        $favourite_exists = false;
+        foreach ($favourites as $favourite) {
+            if ($favourite['item_id'] === $book_id) {
+                $favourite_exists = true;
+                break;
+            }
+        }
+
+        if ($favourite_exists) {
+            // Remove from favourites
+            $favourites = array_filter($favourites, function($fav) use ($book_id) {
+                return $fav['item_id'] !== $book_id;
+            });
+            setcookie('favourites', json_encode($favourites), time() + 3600, '/');
+            $response = [
+                'success' => true,
+                'liked' => false,
+                'recent_likes_count' => count($favourites),
+                'logged_in' => false
             ];
         } else {
-            $response = ['success' => false, 'error' => 'Could not insert item.'];
+            // Add to favourites
+            $favourites[] = ['item_id' => $book_id, 'item_type' => 'book'];
+            setcookie('favourites', json_encode($favourites), time() + 3600, '/');
+            $response = [
+                'success' => true,
+                'liked' => true,
+                'recent_likes_count' => count($favourites),
+                'logged_in' => false
+            ];
         }
-        $insert_stmt->close();
     }
+
     echo json_encode($response);
-    $stmt->close();
     exit;
 }
+
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'delete') {
     $book_id = intval($_POST['book_id']); 
@@ -152,7 +214,13 @@ $offset = ($current_page - 1) * $books_per_page;
 $search_title = isset($_GET['search_title']) ? '%' . sanitize_input($_GET['search_title']) . '%' : null;
 $search_category = isset($_GET['search_category']) && $_GET['search_category'] !== '' ? sanitize_input($_GET['search_category']) : null;
 $filter = isset($_GET['filter']) ? sanitize_input($_GET['filter']) : null;
+if (isset($_SESSION['user_id'])) {
+    $user_id = $_SESSION['user_id']; // Get the logged-in user's ID
+} else {
+    $user_id = 0; // Assuming 0 or a default value when the user is not logged in
+}
 
+// Prepare the SQL query with the user ID check
 $sql = "
     SELECT books.*, 
            COALESCE(AVG(reviews.rating), 0) AS average_rating
@@ -162,9 +230,11 @@ $sql = "
     WHERE (books.visibility = 1 OR books.user_id = ?)
 ";
 
-$params = [$_SESSION['user_id']];
+// Initialize query parameters and types
+$params = [$user_id];
 $types = "i"; 
 
+// Apply filters if provided
 if ($search_title) {
     $sql .= " AND books.title LIKE ?";
     $params[] = $search_title;
@@ -177,8 +247,10 @@ if ($search_category) {
     $types .= "s";
 }
 
+// Group results by book ID
 $sql .= " GROUP BY books.id";
 
+// Apply sorting if filter is provided
 if ($filter) {
     switch ($filter) {
         case 'az':
@@ -201,16 +273,19 @@ if ($filter) {
     $sql .= " ORDER BY books.created_at DESC"; 
 }
 
+// Limit and offset for pagination
 $sql .= " LIMIT ? OFFSET ?";
 $params[] = $books_per_page; 
 $params[] = $offset; 
 $types .= "ii"; 
 
+// Prepare the SQL statement and bind parameters
 $stmt = $conn->prepare($sql);
 $stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
 
+// Get the total count of books for pagination
 $total_sql = "
     SELECT COUNT(*) as total 
     FROM books
@@ -218,9 +293,10 @@ $total_sql = "
     WHERE (books.visibility = 1 OR books.user_id = ?)
 ";
 
-$total_params = [$_SESSION['user_id']];
+$total_params = [$user_id];
 $total_types = "i";
 
+// Apply filters to total query
 if ($search_title) {
     $total_sql .= " AND books.title LIKE ?";
     $total_params[] = $search_title;
@@ -233,13 +309,14 @@ if ($search_category) {
     $total_types .= "s";
 }
 
+// Prepare total query statement
 $total_stmt = $conn->prepare($total_sql);
 $total_stmt->bind_param($total_types, ...$total_params);
 $total_stmt->execute();
 $total_result = $total_stmt->get_result();
 $total_row = $total_result->fetch_assoc();
 $total_books = $total_row['total'];
-$total_pages = ceil($total_books / $books_per_page); 
+$total_pages = ceil($total_books / $books_per_page);  
 
 $userData = null;
 if (isset($_SESSION['user_id'])) {
@@ -267,28 +344,49 @@ if (isset($_SESSION['user_id'])) {
     <script>
         $(document).ready(function() {
             $('.toggle_favourite').click(function() {
-                var button = $(this);
-                var bookId = button.data('book-id');
+    var button = $(this);
+    var bookId = button.data('book-id');
 
-                $.ajax({
-                    url: 'books.php',
-                    type: 'POST',
-                    data: { book_id: bookId,action:'like' },
-                    success: function(response) {
-                        var data = JSON.parse(response);
-                        if (data.success) {
-                            button.data('liked', data.liked);
-                            button.text(data.liked ? 'Remove from Favourite' : 'Add to Favourite');
-                            $('.recent_likes_count').text(data.recent_likes_count);
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    },
-                    error: function() {
-                        alert('An error occurred while processing your request.');
+    $.ajax({
+        url: 'books.php',
+        type: 'POST',
+        data: { 
+            book_id: bookId,
+            action: 'like' 
+        },
+        success: function(response) {
+            var data = JSON.parse(response);
+
+            if (data.success) {
+                // Update the button text after success
+                button.text(data.liked ? 'Remove from Favourite' : 'Add to Favourite');
+
+                // Update cookies if needed (if logged out user)
+                if (data.logged_in === false) {
+                    var favourites = JSON.parse(localStorage.getItem('favourites')) || [];
+                    
+                    if (data.liked) {
+                        favourites.push({ item_id: bookId, item_type: 'book' });
+                    } else {
+                        favourites = favourites.filter(function(fav) {
+                            return !(fav.item_id === bookId && fav.item_type === 'book');
+                        });
                     }
-                });
-            });
+                    localStorage.setItem('favourites', JSON.stringify(favourites)); // Save to localStorage
+                }
+
+                // Update recent likes count if necessary
+                $('.recent_likes_count').text(data.recent_likes_count);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        },
+        error: function() {
+            alert('An error occurred while processing your request.');
+        }
+    });
+});
+
             $('.delete_book_from_db').click(function() {
                 var button = $(this);
                 var bookId = button.data('book-id');
@@ -437,6 +535,11 @@ if (isset($_SESSION['user_id'])) {
                     $fileNameDisplayMovie.text("");
                 }
             }
+            var isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
+
+            if (!isLoggedIn) {
+                $('.star-rating span').css('pointer-events', 'none'); 
+            }
         });
     </script>
 </head>
@@ -468,11 +571,55 @@ if (isset($_SESSION['user_id'])) {
                 <?php else: ?>
                     <a href="login.php" class="login links_navigation link_log">Login <i class="fa-solid fa-arrow-right-to-bracket "></i></a>
                 <?php endif; ?>
-                <a class="links_navigation link_log like_log" href="favourite.php"><i class="fa-regular fa-heart icon_size"></i><p class="recent_likes_count"><?php echo count($_SESSION['recent_likes'])?></p></a>
+                <a class="links_navigation link_log like_log" href="favourite.php"><i class="fa-regular fa-heart icon_size"></i><p class="recent_likes_count"><?php
+                            $likes_count = 0;
+
+                            // Check if the user is logged in
+                            if (isset($_SESSION['user_id'])) {
+                                // Add session likes count
+                                $likes_count += count($_SESSION['recent_likes']);
+
+                                // Add cookie likes count (if any)
+                                if (isset($_COOKIE['favourites'])) {
+                                    $favourites = json_decode($_COOKIE['favourites'], true);
+                                    $likes_count += count($favourites);
+                                }
+                            } else {
+                                // If not logged in, count only the cookie likes
+                                if (isset($_COOKIE['favourites'])) {
+                                    $favourites = json_decode($_COOKIE['favourites'], true);
+                                    $likes_count = count($favourites);
+                                }
+                            }
+
+                            echo $likes_count; // Display the total number of likes
+                        ?></p></a>
 
                 <a class="links_navigation link_log" href="index.php"><i class="fas fa-home icon_size"></i></a>
             </nav>
-            <a class="links_navigation favourite_small_screens like_log" href="favourite.php"><i class="fa-regular fa-heart icon_margin favourite_icon"></i><p class="recent_likes_count"><?php echo count($_SESSION['recent_likes'])?></p></a>
+            <a class="links_navigation favourite_small_screens like_log" href="favourite.php"><i class="fa-regular fa-heart icon_margin favourite_icon"></i><p class="recent_likes_count"><?php
+                            $likes_count = 0;
+
+                            // Check if the user is logged in
+                            if (isset($_SESSION['user_id'])) {
+                                // Add session likes count
+                                $likes_count += count($_SESSION['recent_likes']);
+
+                                // Add cookie likes count (if any)
+                                if (isset($_COOKIE['favourites'])) {
+                                    $favourites = json_decode($_COOKIE['favourites'], true);
+                                    $likes_count += count($favourites);
+                                }
+                            } else {
+                                // If not logged in, count only the cookie likes
+                                if (isset($_COOKIE['favourites'])) {
+                                    $favourites = json_decode($_COOKIE['favourites'], true);
+                                    $likes_count = count($favourites);
+                                }
+                            }
+
+                            echo $likes_count; // Display the total number of likes
+                        ?></p></a>
                     
         </div>
 
@@ -518,20 +665,21 @@ if (isset($_SESSION['user_id'])) {
                 <h3>Create New Book</h3>
                 <form method="POST" action="books.php" enctype="multipart/form-data">
                     <input type="hidden" name="action" value="add_book">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
 
                     <div class="form-group">
                         <label for="title">Title:</label>
-                        <input type="text" name="title" required>
+                        <input type="text" name="title" required maxlength="100">
                     </div>
 
                     <div class="form-group">
                         <label for="author">Author:</label>
-                        <input type="text" name="author" required></input>
+                        <input type="text" name="author" required maxlength="100">
                     </div>
 
                     <div class="form-group">
                         <label for="description">Description:</label>
-                        <textarea name="description" required></textarea>
+                        <textarea name="description" required maxlength="500"></textarea>
                     </div>
 
                     <div class="form-group">
@@ -539,8 +687,8 @@ if (isset($_SESSION['user_id'])) {
                         <select name="category" required>
                             <option value="">Select a category</option>
                             <?php foreach ($categories as $category): ?>
-                                <option value="<?php echo htmlspecialchars($category['Name']); ?>">
-                                    <?php echo htmlspecialchars($category['Name']); ?>
+                                <option value="<?php echo htmlspecialchars($category['Name'], ENT_QUOTES, 'UTF-8'); ?>">
+                                    <?php echo htmlspecialchars($category['Name'], ENT_QUOTES, 'UTF-8'); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -561,6 +709,7 @@ if (isset($_SESSION['user_id'])) {
             </div>
         </div>
     </div>
+
     <div class="min_height_div">
         <div class="filter-section">
             <form method="GET" action="" class="filter-div">
@@ -596,8 +745,9 @@ if (isset($_SESSION['user_id'])) {
                     <button type="submit" class="btn">Search</button>
                 </div>
             </form>
-
+            <?php if (isset($_SESSION['user_id'])): ?>
             <button class="add-movie-icon btn add_book" style="min-width:120px;" id="addMovieBtn"> Add Book</button>
+            <?php endif ?>
 
         </div>
         <?php if (isset($_GET['search_title']) || (isset($_GET['search_category']) && $_GET['search_category'] !== '') || isset($_GET['filter'])): ?>
@@ -637,55 +787,90 @@ if (isset($_SESSION['user_id'])) {
             </div>
         <?php endif; ?>
         <ul class="movie-gallery">
-            <?php while ($book = $result->fetch_assoc()): ?>
-                <li class="movie-item">
-                    <div class="movie-image-container">
-                        <?php if (!empty($book['image_link'])): ?>
-                            <img class="movie-image" src="<?php echo htmlspecialchars($book['image_link']); ?>" alt="Book Image">
+    <?php while ($book = $result->fetch_assoc()): ?>
+        <li class="movie-item">
+            <div class="movie-image-container">
+                <?php if (!empty($book['image_link'])): ?>
+                    <img class="movie-image" src="<?php echo htmlspecialchars($book['image_link']); ?>" alt="Book Image">
+                <?php endif; ?>
+                <div class="movie-overlay">
+                    <strong style="font-size:1.3rem;margin-bottom:5px;"><?php echo htmlspecialchars($book['title']); ?></strong>
+                    <p style="margin-bottom:auto;font-size:1rem;"><?php echo htmlspecialchars($book['description']); ?></p>
+                    <div class="movie-actions">
+                    <button class="toggle_favourite" data-book-id="<?php echo $book['id']; ?>">
+    <?php
+        if (isset($_SESSION['user_id'])) {
+            $user_id = $_SESSION['user_id'];
+
+            // Check the database for the favourite status
+            $check_like_sql = "SELECT * FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?";
+            $check_stmt = $conn->prepare($check_like_sql);
+            $item_type = 'book';
+            $check_stmt->bind_param('iis', $user_id, $book['id'], $item_type);
+            $check_stmt->execute();
+            $check_result = $check_stmt->get_result();
+            echo ($check_result->num_rows > 0) ? 'Remove from Favourite' : 'Add to Favourite';
+            $check_stmt->close();
+        } else {
+            // For logged-out users, check cookies
+            if (isset($_COOKIE['favourites'])) {
+                $favourites = json_decode($_COOKIE['favourites'], true);
+                $is_liked = false;
+
+                // Loop through the favourites array
+                foreach ($favourites as $favourite) {
+                    // Check if the book is in the favourites list (note: compare as string)
+                    if (isset($favourite['item_id']) && (string)$favourite['item_id'] === (string)$book['id'] && $favourite['item_type'] === 'book') {
+                        $is_liked = true; // Book is marked as liked
+                        break;
+                    }
+                }
+
+                // Display the button text accordingly
+                echo $is_liked ? 'Remove from Favourite' : 'Add to Favourite';
+            } else {
+                // No favourites in cookies, so show 'Add to Favourite'
+                echo 'Add to Favourite';
+            }
+        }
+    ?>
+</button>
+
+
+                        <!-- Conditionally display the 'Delete' button only for logged-in users -->
+                        <?php if (isset($_SESSION['user_id'])): ?>
+                            <button class="delete_book_from_db" data-book-id="<?php echo $book['id']; ?>">Delete</button>
                         <?php endif; ?>
-                        <div class="movie-overlay">
-                            <strong style="font-size:1.3rem;margin-bottom:5px;"><?php echo htmlspecialchars($book['title']); ?></strong>
-                            <p style="margin-bottom:auto;font-size:1rem;"><?php echo htmlspecialchars($book['description']); ?></p>
-                            <div class="movie-actions">
-                                <button class="toggle_favourite" data-book-id="<?php echo $book['id']; ?>">
-                                    <?php 
-                                        $check_like_sql = "SELECT * FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?";
-                                        $check_stmt = $conn->prepare($check_like_sql);
-                                        $item_type = "book";
-                                        $check_stmt->bind_param('iis', $_SESSION['user_id'], $book['id'], $item_type);
-                                        $check_stmt->execute();
-                                        $check_result = $check_stmt->get_result();
-                                        echo ($check_result->num_rows > 0) ? 'Remove from Favourite' : 'Add to Favourite';
-                                        $check_stmt->close();
-                                    ?>
-                                </button>
-                                <button class="delete_book_from_db" data-book-id="<?php echo $book['id']; ?>">Delete</button>
-                                <div class="star-rating" data-item-id="<?php echo $book['id']; ?>" data-item-type="book">
-                                    <?php 
-                                        $rating = isset($book['average_rating']) ? $book['average_rating'] : 0;
-                                        $fullStars = floor($rating);
-                                        $halfStar = ($rating - $fullStars >= 0.5);
-                                        for ($i = 1; $i <= 5; $i++) {
-                                            if ($i <= $fullStars) {
-                                                echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                                            } elseif ($i == $fullStars + 1 && $halfStar) {
-                                                echo '<span class="bi bi-star-half star-half" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                                            } else {
-                                                echo '<span class="bi bi-star empty-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                                            }
-                                        }
-                                    ?>
-                                </div>
-                                <p class="rating-value" data-item-id="<?php echo $book['id']; ?>" data-item-type="book">
-                                    Average Rating: <?php echo number_format($book['average_rating'], 2); ?>
-                                </p>
-                            </div>
+
+                        <!-- Rating Stars (Display but not clickable for non-logged-in users) -->
+                        <div class="star-rating" data-item-id="<?php echo $book['id']; ?>" data-item-type="book">
+                            <?php 
+                                $rating = isset($book['average_rating']) ? $book['average_rating'] : 0;
+                                $fullStars = floor($rating);
+                                $halfStar = ($rating - $fullStars >= 0.5);
+                                for ($i = 1; $i <= 5; $i++) {
+                                    if ($i <= $fullStars) {
+                                        echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                                    } elseif ($i == $fullStars + 1 && $halfStar) {
+                                        echo '<span class="bi bi-star-half star-half" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                                    } else {
+                                        echo '<span class="bi bi-star empty-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                                    }
+                                }
+                            ?>
                         </div>
 
+                        <!-- Display average rating value -->
+                        <p class="rating-value" data-item-id="<?php echo $book['id']; ?>" data-item-type="book">
+                            Average Rating: <?php echo number_format($book['average_rating'], 2); ?>
+                        </p>
                     </div>
-                </li>
-            <?php endwhile; ?>
-        </ul>
+                </div>
+            </div>
+        </li>
+    <?php endwhile; ?>
+</ul>
+
         <div class="pagination-container">
             <?php if ($total_pages > 1): ?>
                 <?php if ($current_page > 1): ?>

@@ -4,15 +4,19 @@ include 'includes/functions.php';
 include 'includes/db.php';
 check_login();
 
+function sanitize_input_user($data) {
+    return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($_POST['action'] === 'add_user_with_role') {
-        $username = sanitize_input($_POST['username']);
-        $first_name = sanitize_input($_POST['first_name']);
-        $last_name = sanitize_input($_POST['last_name']);
-        $email = sanitize_input($_POST['email']);
-        $number = sanitize_input($_POST['number']);
+        $username = sanitize_input_user($_POST['username']);
+        $first_name = sanitize_input_user($_POST['first_name']);
+        $last_name = sanitize_input_user($_POST['last_name']);
+        $email = sanitize_input_user($_POST['email']);
+        $number = sanitize_input_user($_POST['number']);
         $password = password_hash(trim($_POST['password']), PASSWORD_DEFAULT); 
-        $role = sanitize_input($_POST['role']);
+        $role = sanitize_input_user($_POST['role']);
 
         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
             $fileTmpPath = $_FILES['image']['tmp_name'];
@@ -35,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo "Error uploading the image.";
         }
     } elseif ($_POST['action'] === 'change_user_role') {
-        $newRole = sanitize_input($_POST['new_role']);
+        $newRole = sanitize_input_user($_POST['new_role']);
         $userId = (int)$_POST['user_id'];
 
         $sql_update_role = "UPDATE users SET Role = ? WHERE ID_USER = ?";
@@ -46,8 +50,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              echo "Error updating user role: " . $stmt_update_role->error;
         }
     } elseif ($_POST['action'] === 'add_movie') {
-        $title = sanitize_input($_POST['title']);
-        $description = sanitize_input($_POST['description']);
+        $title = sanitize_input_user($_POST['title']);
+        $description = sanitize_input_user($_POST['description']);
         $category_id = (int)$_POST['category_id'];
         $user_id = $_SESSION['user_id'];
         $visibility = 1;
@@ -74,9 +78,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo "Error uploading the image.";
         }
     } elseif ($_POST['action'] === 'add_book') {
-        $title = sanitize_input($_POST['title']);
-        $author = sanitize_input($_POST['author']);
-        $description = sanitize_input($_POST['description']);
+        $title = sanitize_input_user($_POST['title']);
+        $author = sanitize_input_user($_POST['author']);
+        $description = sanitize_input_user($_POST['description']);
         $category_id = (int)$_POST['category_id']; 
         $user_id = $_SESSION['user_id'];
         $visibility = 1;
@@ -103,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo "Error uploading the image.";
         }
     } elseif ($_POST['action'] === 'add_goal') {
-        $goal_text = sanitize_input($_POST['goal_text']);
+        $goal_text = sanitize_input_user($_POST['goal_text']);
         $user_id = $_SESSION['user_id'];
         $visibility=1;
         $sql_add_goal = "INSERT INTO goals (text, user_id,visibility) VALUES (?, ?,?)";
@@ -114,9 +118,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo "Error adding goal: " . $stmt_add_goal->error;
         }
     } elseif ($_POST['action'] === 'add_recipe') {
-        $title = sanitize_input($_POST['title']);
-        $ingredients = sanitize_input($_POST['ingredients']);
-        $instructions = sanitize_input($_POST['instructions']);
+        $title = sanitize_input_user($_POST['title']);
+        $ingredients = sanitize_input_user($_POST['ingredients']);
+        $instructions = sanitize_input_user($_POST['instructions']);
         $user_id = $_SESSION['user_id'];
         $visibility = 1;
         $like = 0;
@@ -142,12 +146,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo "Error uploading the image.";
         }
     }else if ($_POST['action'] === 'update_user') {
-        $firstName = sanitize_input($_POST['firstName']);
-        $lastName = sanitize_input($_POST['lastName']);
-        $username = sanitize_input($_POST['username']);
-        $email = sanitize_input($_POST['email']);
-        $number = sanitize_input($_POST['number']); 
-        $role = sanitize_input($_POST['role']); 
+        $firstName = sanitize_input_user($_POST['firstName']);
+        $lastName = sanitize_input_user($_POST['lastName']);
+        $username = sanitize_input_user($_POST['username']);
+        $email = sanitize_input_user($_POST['email']);
+        $number = sanitize_input_user($_POST['number']); 
+        $role = sanitize_input_user($_POST['role']); 
         $user_id = $_SESSION['user_id'];
     
         $dest_path = null; 
@@ -214,9 +218,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn->begin_transaction();
     
         try {
-            $stmt1 = $conn->prepare("DELETE FROM reviews WHERE user_id = ?");
-            $stmt1->bind_param("i", $user_id);
-            $stmt1->execute();
             $stmt2 = $conn->prepare("DELETE FROM movies WHERE user_id = ?");
             $stmt2->bind_param("i", $user_id);
             $stmt2->execute();
@@ -245,17 +246,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo "Error deleting user: " . $e->getMessage();
         }
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
 }
 
 $sql_user = "SELECT * FROM users WHERE ID_USER = ?";
@@ -293,8 +283,8 @@ if (isset($_SESSION['user_id'])) {
     $userData = $result_for_header->fetch_assoc();
     $stmt_for_header->close();
 }
-
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -764,96 +754,82 @@ if (isset($_SESSION['user_id'])) {
         </nav>
     </header>
     <div class="div_divs">
-        <div class="user-profile">
-            <form id="updateForm" method="POST" enctype="multipart/form-data">
-                <div class="container_for_all">
-                    <input type="hidden" id="action" name="action" value="update_user">
-
-                    <div class="col_us">
-                        <div class="user_Header">User Information</div>
-
-                        <div class="image-container">
-                            <div class="image-wrapper">
-                                <?php if (!empty($user['Image_Link'])): ?>
-                                    <img id="userImageDisplay" src="<?php echo htmlspecialchars($user['Image_Link']); ?>" alt="Profile Image">
-                                <?php else: ?>
-                                    <img id="userImageDisplay" src="assets/fakers/no-image.jpg" alt="Profile Image">
-                                <?php endif; ?>
-
-                                <label class="overlay" id="overlay" for="userImageInput">
-                                    <i class="fa fa-camera camera-icon" aria-hidden="true"></i>
-                                    <input type="file" id="userImageInput" name="image" style="display:none;" accept="image/*">
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="div_info_user " style="margin-top:20px;">
-                        <div class="width_long row_info_user">
-                            <label for="username">Username:</label>
-                            <span id="usernameDisplay"><?php echo htmlspecialchars($user['username']); ?></span>
-                            <input type="text" id="username" name="username" value="<?php echo htmlspecialchars($user['username']); ?>" class="hidden">
-                        </div>
-
-                         <div  class="col_respons" style="display:flex;flex-direction:row;">
-                            <div class="row_info_user">
-                                <label for="lastName">Last Name:</label>
-                                <span id="lastNameDisplay"><?php echo htmlspecialchars($user['Last_Name']); ?></span>
-                                <input type="text" id="lastName" name="lastName" value="<?php echo htmlspecialchars($user['Last_Name']); ?>" class="hidden">
-                            </div>
-
-                            <div class="row_info_user">
-                                <label for="firstName">First Name:</label>
-                                <span id="firstNameDisplay"><?php echo htmlspecialchars($user['First_Name']); ?></span>
-                                <input type="text" id="firstName" name="firstName" value="<?php echo htmlspecialchars($user['First_Name']); ?>" class="hidden">
-                            </div>
-                         </div>
-                         <div  class="col_respons" style="display:flex;flex-direction:row;">
-
-                            <div class="row_info_user">
-                                <label for="email">Email:</label>
-                                <span id="emailDisplay"><?php echo htmlspecialchars($user['email']); ?></span>
-                                <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="hidden">
-                            </div>
-
-                            <div class="row_info_user">
-                                <label for="number">Phone Number:</label>
-                                <span id="numberDisplay"><?php echo htmlspecialchars($user['Number']); ?></span>
-                                <input type="text" id="number" name="number" value="<?php echo htmlspecialchars($user['Number']); ?>" class="hidden">
-                            </div>
-                         </div>
-                        
-
-                        <div class="width_long row_info_user">
-                            <label for="role">Role:</label>
-                            <span id="roleDisplay"><?php echo htmlspecialchars($user['Role']); ?></span>
-                            <select id="role" name="role" class="hidden">
-                                <option value="user" <?php echo $user['Role'] === 'user' ? 'selected' : ''; ?>>user</option>
-                                <option value="admin" <?php echo $user['Role'] === 'admin' ? 'selected' : ''; ?>>admin</option>
-                            </select>
+    <div class="user-profile">
+        <form id="updateForm" method="POST" enctype="multipart/form-data">
+            <div class="container_for_all">
+                <input type="hidden" id="action" name="action" value="update_user">
+                <div class="col_us">
+                    <div class="user_Header">User Information</div>
+                    <div class="image-container">
+                        <div class="image-wrapper">
+                            <?php if (!empty($user['Image_Link'])): ?>
+                                <img id="userImageDisplay" src="<?php echo htmlspecialchars($user['Image_Link']); ?>" alt="Profile Image">
+                            <?php else: ?>
+                                <img id="userImageDisplay" src="assets/fakers/no-image.jpg" alt="Profile Image">
+                            <?php endif; ?>
+                            <label class="overlay" id="overlay" for="userImageInput">
+                                <i class="fa fa-camera camera-icon" aria-hidden="true"></i>
+                                <input type="file" id="userImageInput" name="image" style="display:none;" accept="image/*">
+                            </label>
                         </div>
                     </div>
                 </div>
-
-                <div class="buttons_div">
-                    <button type="button" id="passwordChangeButton">Change password</button>
-                    <button type="button" id="editButton">Edit</button>
-                    <button type="button" id="saveButton" class="hidden">Save</button>
+                <div class="div_info_user" style="margin-top:20px;">
+                    <div class="width_long row_info_user">
+                        <label for="username">Username:</label>
+                        <span id="usernameDisplay"><?php echo htmlspecialchars($user['username']); ?></span>
+                        <input type="text" id="username" name="username" value="<?php echo htmlspecialchars($user['username']); ?>" class="hidden">
+                    </div>
+                    <div class="col_respons" style="display:flex;flex-direction:row;">
+                        <div class="row_info_user">
+                            <label for="lastName">Last Name:</label>
+                            <span id="lastNameDisplay"><?php echo htmlspecialchars($user['Last_Name']); ?></span>
+                            <input type="text" id="lastName" name="lastName" value="<?php echo htmlspecialchars($user['Last_Name']); ?>" class="hidden">
+                        </div>
+                        <div class="row_info_user">
+                            <label for="firstName">First Name:</label>
+                            <span id="firstNameDisplay"><?php echo htmlspecialchars($user['First_Name']); ?></span>
+                            <input type="text" id="firstName" name="firstName" value="<?php echo htmlspecialchars($user['First_Name']); ?>" class="hidden">
+                        </div>
+                    </div>
+                    <div class="col_respons" style="display:flex;flex-direction:row;">
+                        <div class="row_info_user">
+                            <label for="email">Email:</label>
+                            <span id="emailDisplay"><?php echo htmlspecialchars($user['email']); ?></span>
+                            <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="hidden">
+                        </div>
+                        <div class="row_info_user">
+                            <label for="number">Phone Number:</label>
+                            <span id="numberDisplay"><?php echo htmlspecialchars($user['Number']); ?></span>
+                            <input type="text" id="number" name="number" value="<?php echo htmlspecialchars($user['Number']); ?>" class="hidden">
+                        </div>
+                    </div>
+                    <div class="width_long row_info_user">
+                        <label for="role">Role:</label>
+                        <span id="roleDisplay"><?php echo htmlspecialchars($user['Role']); ?></span>
+                        <select id="role" name="role" class="hidden">
+                            <option value="user" <?php echo $user['Role'] === 'user' ? 'selected' : ''; ?>>user</option>
+                            <option value="admin" <?php echo $user['Role'] === 'admin' ? 'selected' : ''; ?>>admin</option>
+                        </select>
+                    </div>
                 </div>
-            </form>
-        </div>
+            </div>
+            <div class="buttons_div">
+                <button type="button" id="passwordChangeButton">Change password</button>
+                <button type="button" id="editButton">Edit</button>
+                <button type="button" id="saveButton" class="hidden">Save</button>
+            </div>
+        </form>
     </div>
-    <div id="password-popup" class="popup-container">
+</div>
+<div id="password-popup" class="popup-container">
     <div class="popup-content">
-        <!-- Popup Header with title and close icon -->
         <div class="popup-header">
             <h2>Password Change</h2>
             <button id="close-popup" class="close-btn1"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        
         <form id="password-change-form" method="post">
             <input type="hidden" name="action" value="change_password">
-
             <label for="old_password">Old Password:</label>
             <div class="password-input-wrapper">
                 <input type="password" id="old_password" name="old_password" required>
@@ -861,7 +837,6 @@ if (isset($_SESSION['user_id'])) {
                     <i class="fa-solid fa-eye-slash"></i>
                 </button>
             </div>
-
             <label for="new_password">New Password:</label>
             <div class="password-input-wrapper">
                 <input type="password" id="new_password" name="new_password" class="new-password_label" required>
@@ -869,9 +844,7 @@ if (isset($_SESSION['user_id'])) {
                     <i class="fa-solid fa-eye-slash"></i>
                 </button>
             </div>
-
-            <p id="strength-text"></p> <!-- Show 'Weak password' immediately -->
-
+            <p id="strength-text"></p>
             <label for="repeat_new_password">Repeat New Password:</label>
             <div class="password-input-wrapper">
                 <input type="password" id="repeat_new_password" name="repeat_new_password" required>
@@ -879,247 +852,233 @@ if (isset($_SESSION['user_id'])) {
                     <i class="fa-solid fa-eye-slash"></i>
                 </button>
             </div>
-
             <button type="button" id="submit-button">Change Password</button>
         </form>
     </div>
 </div>
-
-
-
-    <?php if ($user['Role'] === 'admin'): ?>
-        <div class="admin-container">
-            <h2 class="admin_header">Admin Features</h2>
-            <div class="user-list-container">
-                <h2>Users list</h2>
-                <ul>
-                    <?php while ($user_list = $users_list->fetch_assoc()): ?>
-                        <?php if($user_list['ID_USER'] != $_SESSION['user_id']): ?>
-                            <li class="user-item">
-                                 <div class="info_list_user">
-                                    <div class="user-image">
-                                        <?php if (!empty($user_list['Image_Link'])): ?>
-                                            <img src="<?php echo htmlspecialchars($user_list['Image_Link']); ?>" alt="User Image">
-                                        <?php else: ?>
-                                            <img src="assets/fakers/no-image.jpg" alt="User Image">
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="user-info_list">
-                                        <strong><?php echo htmlspecialchars($user_list['username']); ?> </strong> - 
-                                        <?php echo htmlspecialchars($user_list['email']); ?> - 
-                                        <?php echo htmlspecialchars($user_list['Role']); ?>
-                                    </div>
-
-                                 </div>
-                                <div class="buttons_user_list">
-                                    <form action="user.php" method="POST" class="role-form">
-                                        <input type="hidden" name="action" value="change_user_role">
-                                        <input type="hidden" name="user_id" value="<?php echo $user_list['ID_USER']; ?>">
-                                        <select name="new_role" required>
-                                            <option value="">Change Role</option>
-                                            <option value="admin" <?php if ($user_list['Role'] === 'admin') echo 'selected'; ?>>Admin</option>
-                                            <option value="user" <?php if ($user_list['Role'] === 'user') echo 'selected'; ?>>User</option>
-                                        </select>
-                                        <button type="submit" class="change_role_user">Change role</button>
-                                    </form>
-
-                                    <form action="user.php" method="POST" onsubmit="return confirm('Are you sure you want to delete this user?');">
-                                        <input type="hidden" name="action" value="delete_user">
-                                        <input type="hidden" name="user_id" value="<?php echo $user_list['ID_USER']; ?>">
-                                        <button type="submit" class="delete-button"><i class="fa-solid fa-trash"></i></button>
-                                    </form>
+<?php if ($user['Role'] === 'admin'): ?>
+    <div class="admin-container">
+        <h2 class="admin_header">Admin Features</h2>
+        <div class="user-list-container">
+            <h2>Users list</h2>
+            <ul>
+                <?php while ($user_list = $users_list->fetch_assoc()): ?>
+                    <?php if($user_list['ID_USER'] != $_SESSION['user_id']): ?>
+                        <li class="user-item">
+                            <div class="info_list_user">
+                                <div class="user-image">
+                                    <?php if (!empty($user_list['Image_Link'])): ?>
+                                        <img src="<?php echo htmlspecialchars($user_list['Image_Link']); ?>" alt="User Image">
+                                    <?php else: ?>
+                                        <img src="assets/fakers/no-image.jpg" alt="User Image">
+                                    <?php endif; ?>
                                 </div>
-                                
-                            </li>
-                        <?php endif; ?>
-                    <?php endwhile; ?>
-                </ul>
-            </div>
-            <div class="form-container">
-                <h2>Create new user</h2>
-                <form action="user.php" method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="action" value="add_user_with_role">
-                    
-                    <div class="form-group">
-                        <label for="username">Username:</label>
-                        <input type="text" id="username" name="username" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="first_name">First name:</label>
-                        <input type="text" id="first_name" name="first_name" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="last_name">Last name:</label>
-                        <input type="text" id="last_name" name="last_name" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="email">Email:</label>
-                        <input type="email" id="email" name="email" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="number">Number:</label>
-                        <input type="text" id="number" name="number">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="password">Password:</label>
-                        <input type="password" id="password" name="password" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="role">Role:</label>
-                        <select id="role" name="role" required>
-                            <option value="">Select a role</option>
-                            <option value="admin">Admin</option>
-                            <option value="user">User</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group col">
-                        <label for="image">Image:</label>
-                        <div class="dragAndDropArea" >
-                            <i class="fa-solid fa-cloud-arrow-up"></i>
-                            <p>Drag & Drop an image here to upload</p>
-                        </div>
-                        <input type="file" id="image" name="image" accept="image/*" style="display: none;">
-                        <div class="fileNameDisplay" style="margin-top: 5px; font-size: 14px; color: #555;"></div>
-                    </div>
-
-                    <button type="submit" class="btn">Add User</button>
-                </form>
-            </div>
-            <div class="form-container">
-                <h2>Create new movie</h2>
-                <form action="user.php" method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="action" value="add_movie">
-
-                    <div class="form-group">
-                        <label for="title">Title:</label>
-                        <input type="text" id="title" name="title" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="description">Description:</label>
-                        <textarea id="description" name="description" required></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="category_id">Category:</label>
-                        <select id="category_id" name="category_id" required>
-                            <option value="">Select a category</option>
-                            <?php while ($category = $categories->fetch_assoc()): ?>
-                                <option value="<?php echo $category['id_category']; ?>"><?php echo htmlspecialchars($category['Name']); ?></option>
-                            <?php endwhile; ?>
-                        </select>
-                    </div>
-
-                    <div class="form-group col">
-                        <label for="movie">Image:</label>
-                        <div id="drop-area" class="drop-area">
-                            <i class="fa-solid fa-cloud-arrow-up"></i>
-                            <p>Drag & Drop an image here to upload</p>
-                        </div>
-                        <input type="file" id="movie" name="movie" accept="image/*" required style="display:none;">
-                        <div class="drop-areaName" style="margin-top: 5px; font-size: 14px; color: #555;"></div>
-                    </div>
-                    
-
-                    <button type="submit" class="btn">Add Movie</button>
-                </form>
-            </div>
-            <div class="form-container">
-                <h3>Create new book</h3>
-                <form action="user.php" method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="action" value="add_book">
-
-                    <div class="form-group">
-                        <label for="title">Title:</label>
-                        <input type="text" name="title" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="author">Author:</label>
-                        <input type="text" name="author" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="description">Description:</label>
-                        <textarea name="description" required></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="category_id">Category:</label>
-                        <select id="category_id" name="category_id" required>
-                            <option value="">Select a category</option>
-                            <?php while ($category = $categories_books->fetch_assoc()): ?>
-                                <option value="<?php echo $category['id_category']; ?>"><?php echo htmlspecialchars($category['Name']); ?></option>
-                            <?php endwhile; ?>
-                        </select>
-                    </div>
-
-                    <div class="form-group col">
-                        <label for="book">Image:</label>
-                        <div id="drop-area_book" class="drop-area">
-                            <i class="fa-solid fa-cloud-arrow-up"></i>
-                            <p>Drag & Drop an image here to upload</p>
-                        </div>
-                        <input type="file" id="book" name="book" accept="image/*" required style="display:none;">
-                        <div class="drop-areaName_book" style="margin-top: 5px; font-size: 14px; color: #555;"></div>
-                    </div>
-
-                    <button type="submit" class="btn">Add Book</button>
-                </form>
-            </div>
-            <div class="form-container">
-                <h3>Create new goal</h3>
-                <form action="user.php" method="post">
-                    <input type="hidden" name="action" value="add_goal">
-                    <div class="form-group">
-                        <label for="goal_text">Goal:</label>
-                        <textarea name="goal_text" required></textarea>
-                    </div>
-
-                    <button type="submit" class="btn">Add Goal</button>
-                </form>
-            </div>
-            <div class="form-container" style="margin-bottom: 60px;">
-                <h3>Create new recipe</h3>
-                <form action="user.php" method="post" enctype="multipart/form-data">
-                    <input type="hidden" name="action" value="add_recipe">
-
-                    <div class="form-group">
-                        <label for="title">Title:</label>
-                        <input type="text" name="title" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="ingredients">Ingredients:</label>
-                        <textarea name="ingredients" required></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="instructions">Instructions:</label>
-                        <textarea name="instructions" required></textarea>
-                    </div>
-
-                    <div class="form-group col">
-                        <label for="recipe">Image:</label>
-                        <div id="drop-area_recipe" class="drop-area">
-                            <i class="fa-solid fa-cloud-arrow-up"></i>
-                            <p>Drag & Drop an image here to upload</p>
-                        </div>
-                        <input type="file" id="recipe" name="recipe" accept="image/*" required style="display:none;">
-                        <div class="drop-areaName_recipe" style="margin-top: 5px; font-size: 14px; color: #555;"></div>
-                    </div>
-
-                    <button type="submit" class="btn">Add Recipe</button>
-                </form>
-            </div>
+                                <div class="user-info_list">
+                                    <strong><?php echo htmlspecialchars($user_list['username']); ?> </strong> - 
+                                    <?php echo htmlspecialchars($user_list['email']); ?> - 
+                                    <?php echo htmlspecialchars($user_list['Role']); ?>
+                                </div>
+                            </div>
+                            <div class="buttons_user_list">
+                                <form action="user.php" method="POST" class="role-form">
+                                    <input type="hidden" name="action" value="change_user_role">
+                                    <input type="hidden" name="user_id" value="<?php echo $user_list['ID_USER']; ?>">
+                                    <select name="new_role" required>
+                                        <option value="">Change Role</option>
+                                        <option value="admin" <?php if ($user_list['Role'] === 'admin') echo 'selected'; ?>>Admin</option>
+                                        <option value="user" <?php if ($user_list['Role'] === 'user') echo 'selected'; ?>>User</option>
+                                    </select>
+                                    <button type="submit" class="change_role_user">Change role</button>
+                                </form>
+                                <form action="user.php" method="POST" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                                    <input type="hidden" name="action" value="delete_user">
+                                    <input type="hidden" name="user_id" value="<?php echo $user_list['ID_USER']; ?>">
+                                    <button type="submit" class="delete-button"><i class="fa-solid fa-trash"></i></button>
+                                </form>
+                            </div>
+                        </li>
+                    <?php endif; ?>
+                <?php endwhile; ?>
+            </ul>
         </div>
+        <div class="form-container">
+            <h2>Create new user</h2>
+            <form action="user.php" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="add_user_with_role">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="first_name">First name:</label>
+                    <input type="text" id="first_name" name="first_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="last_name">Last name:</label>
+                    <input type="text" id="last_name" name="last_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="number">Number:</label>
+                    <input type="text" id="number" name="number">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label for="role">Role:</label>
+                    <select id="role" name="role" required>
+                        <option value="">Select a role</option>
+                        <option value="admin">Admin</option>
+                        <option value="user">User</option>
+                    </select>
+                </div>
+                <div class="form-group col">
+                    <label for="image">Image:</label>
+                    <div class="dragAndDropArea">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <p>Drag & Drop an image here to upload</p>
+                    </div>
+                    <input type="file" id="image" name="image" accept="image/*" style="display: none;">
+                    <div class="fileNameDisplay" style="margin-top: 5px; font-size: 14px; color: #555;"></div>
+                </div>
+                <button type="submit" class="btn">Add User</button>
+            </form>
+        </div>
+        <div class="form-container">
+            <h2>Create new movie</h2>
+            <form action="user.php" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="add_movie">
+
+                <div class="form-group">
+                    <label for="title">Title:</label>
+                    <input type="text" id="title" name="title" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description:</label>
+                    <textarea id="description" name="description" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="category_id">Category:</label>
+                    <select id="category_id" name="category_id" required>
+                        <option value="">Select a category</option>
+                        <?php while ($category = $categories->fetch_assoc()): ?>
+                            <option value="<?php echo htmlspecialchars($category['id_category']); ?>"><?php echo htmlspecialchars($category['Name']); ?></option>
+                        <?php endwhile; ?>
+                    </select>
+                </div>
+
+                <div class="form-group col">
+                    <label for="movie">Image:</label>
+                    <div id="drop-area" class="drop-area">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <p>Drag & Drop an image here to upload</p>
+                    </div>
+                    <input type="file" id="movie" name="movie" accept="image/*" required style="display:none;">
+                    <div class="drop-areaName" style="margin-top: 5px; font-size: 14px; color: #555;"></div>
+                </div>
+
+                <button type="submit" class="btn">Add Movie</button>
+            </form>
+        </div>
+        <div class="form-container">
+            <h3>Create new book</h3>
+            <form action="user.php" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="add_book">
+
+                <div class="form-group">
+                    <label for="title">Title:</label>
+                    <input type="text" name="title" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="author">Author:</label>
+                    <input type="text" name="author" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description:</label>
+                    <textarea name="description" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="category_id">Category:</label>
+                    <select id="category_id" name="category_id" required>
+                        <option value="">Select a category</option>
+                        <?php while ($category = $categories_books->fetch_assoc()): ?>
+                            <option value="<?php echo htmlspecialchars($category['id_category']); ?>"><?php echo htmlspecialchars($category['Name']); ?></option>
+                        <?php endwhile; ?>
+                    </select>
+                </div>
+
+                <div class="form-group col">
+                    <label for="book">Image:</label>
+                    <div id="drop-area_book" class="drop-area">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <p>Drag & Drop an image here to upload</p>
+                    </div>
+                    <input type="file" id="book" name="book" accept="image/*" required style="display:none;">
+                    <div class="drop-areaName_book" style="margin-top: 5px; font-size: 14px; color: #555;"></div>
+                </div>
+
+                <button type="submit" class="btn">Add Book</button>
+            </form>
+        </div>
+        <div class="form-container">
+            <h3>Create new goal</h3>
+            <form action="user.php" method="post">
+                <input type="hidden" name="action" value="add_goal">
+                <div class="form-group">
+                    <label for="goal_text">Goal:</label>
+                    <textarea name="goal_text" required></textarea>
+                </div>
+
+                <button type="submit" class="btn">Add Goal</button>
+            </form>
+        </div>
+        <div class="form-container" style="margin-bottom: 60px;">
+            <h3>Create new recipe</h3>
+            <form action="user.php" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="add_recipe">
+
+                <div class="form-group">
+                    <label for="title">Title:</label>
+                    <input type="text" name="title" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="ingredients">Ingredients:</label>
+                    <textarea name="ingredients" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="instructions">Instructions:</label>
+                    <textarea name="instructions" required></textarea>
+                </div>
+
+                <div class="form-group col">
+                    <label for="recipe">Image:</label>
+                    <div id="drop-area_recipe" class="drop-area">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <p>Drag & Drop an image here to upload</p>
+                    </div>
+                    <input type="file" id="recipe" name="recipe" accept="image/*" required style="display:none;">
+                    <div class="drop-areaName_recipe" style="margin-top: 5px; font-size: 14px; color: #555;"></div>
+                </div>
+
+                <button type="submit" class="btn">Add Recipe</button>
+            </form>
+        </div>
+
+    </div>
+</div>
+
 
 
     <?php endif; ?>

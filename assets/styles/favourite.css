@@ -159,7 +159,7 @@ body{
 }
 
 
-.favorite-item .like_delete_item {
+.favorite-item .like_delete_item,.favorite-item .like_delete_item_cookie {
     font-size: 1.2rem;
     cursor: pointer;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -169,7 +169,7 @@ body{
 }
 
 
-.favorite-item .like_delete_item:hover {
+.favorite-item .like_delete_item:hover,.favorite-item .like_delete_item_cookie:hover {
     transform: scale(1.2);
     color: #333;
 }
@@ -392,7 +392,7 @@ body{
     .content-area {
         padding: 10px;
     }
-    .favorite-item .like_delete_item{
+    .favorite-item .like_delete_item,.favorite-item .like_delete_item_cookie{
         font-size: 1rem;
     }
     .bi{

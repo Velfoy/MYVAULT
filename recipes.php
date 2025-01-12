@@ -4,17 +4,30 @@ include 'includes/functions.php';
 include 'includes/db.php';
 check_login();
 
-// Handle adding a recipe
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_recipe') {
-    $title = $_POST['title'];
-    $ingredients = $_POST['ingredients'];
-    $instructions = $_POST['instructions'];
-    
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die("Invalid CSRF token");
+    }
+    function sanitize_input_recipe($data) {
+        return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
+    }
+    $title = sanitize_input_recipe($_POST['title']);
+    $ingredients = sanitize_input_recipe($_POST['ingredients']);
+    $instructions = sanitize_input_recipe($_POST['instructions']);
+
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['image']['tmp_name'];
-        $fileName = $_FILES['image']['name'];
-        $uploadFileDir = 'uploads/recipes/'; 
-        $dest_path = $uploadFileDir . basename($fileName);
+        $fileName = basename($_FILES['image']['name']);
+        $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+
+        if (!in_array($fileExtension, $allowedExtensions)) {
+            die("Invalid file type");
+        }
+
+        $newFileName = uniqid('recipe_', true) . '.' . $fileExtension;
+        $uploadFileDir = 'uploads/recipes/';
+        $dest_path = $uploadFileDir . $newFileName;
 
         if (move_uploaded_file($fileTmpPath, $dest_path)) {
             $sql = "INSERT INTO recipes (title, Ingredients, Instructions, user_id, visibility, image_link) VALUES (?, ?, ?, ?, 0, ?)";
@@ -23,16 +36,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             
             if (!$stmt->execute()) {
                 echo "Error adding recipe: " . $stmt->error;  
+            } else {
+                // echo "Recipe added successfully!";
             }
-            $stmt->close(); 
+
+            $stmt->close();
         } else {
-            echo "Error moving the uploaded file.";
+            die("Error moving the uploaded file. Ensure the 'uploads/recipes/' directory is writable.");
         }
     } else {
         if (isset($_FILES['image'])) {
-            echo "Error uploading the image: " . $_FILES['image']['error'];
-        } 
+            die("Error uploading the image: " . $_FILES['image']['error']);
+        }
     }
+}
+
+// Generate CSRF token if not already generated
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 // Handle AJAX request to toggle 'like' status
@@ -495,20 +516,21 @@ if (isset($_SESSION['user_id'])) {
                 <h3>Create New Recipe</h3>
                 <form method="POST" action="recipes.php" enctype="multipart/form-data">
                     <input type="hidden" name="action" value="add_recipe">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
 
                     <div class="form-group">
                         <label for="title">Title:</label>
-                        <input type="text" name="title" required>
+                        <input type="text" name="title" required maxlength="100">
                     </div>
 
                     <div class="form-group">
                         <label for="ingredients">Ingredients:</label>
-                        <textarea name="ingredients" required></textarea>
+                        <textarea name="ingredients" required maxlength="500"></textarea>
                     </div>
 
                     <div class="form-group">
                         <label for="instructions">Instructions:</label>
-                        <textarea name="instructions" required></textarea>
+                        <textarea name="instructions" required maxlength="1000"></textarea>
                     </div>
 
                     <div class="form-group col">
@@ -526,6 +548,7 @@ if (isset($_SESSION['user_id'])) {
             </div>
         </div>
     </div>
+
 
     <div class="min_height_div">
         <div class="filter-section">

@@ -2,12 +2,19 @@
 session_start();
 include 'includes/functions.php';
 include 'includes/db.php';
-check_login();
-
+// check_login();
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_movie') {
-    $title = sanitize_input($_POST['title']);
-    $description = sanitize_input($_POST['description']);
-    $category = sanitize_input($_POST['category']);
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die("Invalid CSRF token");
+    }
+
+    function sanitize_input_function($data) {
+        return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
+    }
+
+    $title = sanitize_input_function($_POST['title']);
+    $description = sanitize_input_function($_POST['description']);
+    $category = sanitize_input_function($_POST['category']);
     $user_id = $_SESSION['user_id'];
 
     $sql = "SELECT id_category FROM categories WHERE Name=?";
@@ -22,81 +29,133 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
             $fileTmpPath = $_FILES['image']['tmp_name'];
-            $fileName = $_FILES['image']['name'];
+            $fileName = basename($_FILES['image']['name']);
+            $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+
+            if (!in_array($fileExtension, $allowedExtensions)) {
+                die("Invalid file type");
+            }
+
+            $newFileName = uniqid('movie_', true) . '.' . $fileExtension;
             $uploadFileDir = 'uploads/movies/';
-            $dest_path = $uploadFileDir . basename($fileName);
+            $dest_path = $uploadFileDir . $newFileName;
 
             if (move_uploaded_file($fileTmpPath, $dest_path)) {
                 $sql_add_movie = "INSERT INTO movies (Title, Description, Category_id, user_id, visibility, image_link) VALUES (?, ?, ?, ?, 0, ?)";
                 $stmt_add_movie = $conn->prepare($sql_add_movie);
                 $stmt_add_movie->bind_param('ssiis', $title, $description, $id_category, $user_id, $dest_path);
 
-                if (!$stmt_add_movie->execute()) {
+                if ($stmt_add_movie->execute()) {
+                    // echo "Movie added successfully!";
+                } else {
                     echo "Error adding movie: " . $stmt_add_movie->error;
                 }
             } else {
-                echo "Error moving the uploaded file.";
+                die("Error moving the uploaded file");
             }
         } else {
-            echo "Error uploading the image.";
+            die("Error uploading the image");
         }
     } else {
-        echo "Category not found!";
+        die("Category not found");
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['movie_id'])&&isset($_POST['action'])&& $_POST['action'] === 'like' ) {
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['movie_id']) && isset($_POST['action']) && $_POST['action'] === 'like') {
     $movie_id = $_POST['movie_id'];
-    $user_id = $_SESSION['user_id'];
-    $item_type = "movie";
-    $stmt = $conn->prepare("SELECT * FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?");
-    $stmt->bind_param('iis', $user_id, $movie_id, $item_type);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $response = ['success' => false];
 
-    if ($result->num_rows > 0) {
-        $delete_stmt = $conn->prepare("DELETE FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?");
-        $delete_stmt->bind_param('iis', $user_id, $movie_id, $item_type);
-        
-        if ($delete_stmt->execute()) {
-            $_SESSION['recent_likes'] = array_filter($_SESSION['recent_likes'], function($like) use ($movie_id, $item_type) {
-                return !($like['item_id'] == $movie_id && $like['item_type'] == $item_type);
+    if (isset($_SESSION['user_id'])) {
+        // Handle database operations for logged-in users
+        $user_id = $_SESSION['user_id'];
+        $item_type = 'movie';
+
+        // Check if the movie is already in the 'likes' table
+        $stmt = $conn->prepare("SELECT * FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?");
+        $stmt->bind_param('iis', $user_id, $movie_id, $item_type);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result->num_rows > 0) {
+            // Remove from favourites
+            $delete_stmt = $conn->prepare("DELETE FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?");
+            $delete_stmt->bind_param('iis', $user_id, $movie_id, $item_type);
+            $delete_stmt->execute();
+            $_SESSION['recent_likes'] = array_filter($_SESSION['recent_likes'], function($favourite) use ($movie_id) {
+                return $favourite['item_id'] !== $movie_id;
             });
-            $_SESSION['recent_likes'] = array_values($_SESSION['recent_likes']);
 
             $response = [
                 'success' => true,
+                'liked' => false,
                 'recent_likes_count' => count($_SESSION['recent_likes']),
-                'liked' => false
+                'logged_in' => true
             ];
         } else {
-            $response = ['success' => false, 'error' => 'Could not delete item.'];
-        }
-        $delete_stmt->close();
-    } else {
-        $insert_stmt = $conn->prepare("INSERT INTO likes (user_id, item_id, item_type) VALUES (?, ?, ?)");
-        $insert_stmt->bind_param('iis', $user_id, $movie_id, $item_type);
-        
-        if ($insert_stmt->execute()) {
-            $_SESSION['recent_likes'][] = [
-                'item_id' => $movie_id,
-                'item_type' => $item_type,
-                'timestamp' => time()
-            ];
+            // Add to favourites
+            $insert_stmt = $conn->prepare("INSERT INTO likes (user_id, item_id, item_type) VALUES (?, ?, ?)");
+            $insert_stmt->bind_param('iis', $user_id, $movie_id, $item_type);
+            $insert_stmt->execute();
+            $_SESSION['recent_likes'][] = ['item_id' => $movie_id, 'item_type' => 'movie', 'timestamp' => time()];
+
             $response = [
                 'success' => true,
+                'liked' => true,
                 'recent_likes_count' => count($_SESSION['recent_likes']),
-                'liked' => true
+                'logged_in' => true
+            ];
+        }
+    } else {
+        // If logged out, handle cookies or local storage
+        if (isset($_COOKIE['favourites'])) {
+            $favourites = json_decode($_COOKIE['favourites'], true);
+        } else {
+            $favourites = [];
+        }
+
+        // Check if the movie is in the favourites
+        $favourite_exists = false;
+        foreach ($favourites as $favourite) {
+            if ($favourite['item_id'] === $movie_id) {
+                $favourite_exists = true;
+                break;
+            }
+        }
+
+        if ($favourite_exists) {
+            // Remove from favourites
+            $favourites = array_filter($favourites, function($fav) use ($movie_id) {
+                return $fav['item_id'] !== $movie_id;
+            });
+            setcookie('favourites', json_encode($favourites), time() + 3600, '/');
+            $response = [
+                'success' => true,
+                'liked' => false,
+                'recent_likes_count' => count($favourites),
+                'logged_in' => false
             ];
         } else {
-            $response = ['success' => false, 'error' => 'Could not insert item.'];
+            // Add to favourites
+            $favourites[] = ['item_id' => $movie_id, 'item_type' => 'movie'];
+            setcookie('favourites', json_encode($favourites), time() + 3600, '/');
+            $response = [
+                'success' => true,
+                'liked' => true,
+                'recent_likes_count' => count($favourites),
+                'logged_in' => false
+            ];
         }
-        $insert_stmt->close();
     }
+
     echo json_encode($response);
-    $stmt->close();
     exit;
 }
+
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'delete') {
     $movie_id = intval($_POST['movie_id']);
     $user_id = $_SESSION['user_id'];
@@ -170,29 +229,34 @@ $offset = ($current_page - 1) * $movies_per_page;
 $search_title = isset($_GET['search_title']) ? '%' . sanitize_input($_GET['search_title']) . '%' : null;
 $search_category = isset($_GET['search_category']) && $_GET['search_category'] !== '' ? sanitize_input($_GET['search_category']) : null;
 $filter = isset($_GET['filter']) ? sanitize_input($_GET['filter']) : null;
-
 $sql = "
     SELECT movies.*, 
            COALESCE(AVG(reviews.rating), 0) AS average_rating
     FROM movies
     LEFT JOIN reviews ON movies.id_movies = reviews.movie_id
     LEFT JOIN categories ON movies.Category_id = categories.id_category
-    WHERE (movies.visibility = 1 OR movies.user_id = ?)
+    WHERE (movies.visibility = 1
 ";
 
-$params = [$_SESSION['user_id']];
-$types = "i"; 
+$params = []; 
+$types = ""; 
 
+if (isset($_SESSION['user_id'])) {
+    $sql .= " OR movies.user_id = ?";
+    $params[] = $_SESSION['user_id'];
+    $types .= "i"; 
+}
+$sql .= ")";
 if ($search_title) {
     $sql .= " AND movies.Title LIKE ?";
-    $params[] = $search_title;
+    $params[] = '%' . $search_title . '%'; 
     $types .= "s";
 }
 
 if ($search_category) {
     $sql .= " AND categories.Name = ?";
-    $params[] = $search_category;
-    $types .= "s";
+    $params[] = $search_category; 
+    $types .= "s"; 
 }
 
 $sql .= " GROUP BY movies.id_movies";
@@ -220,8 +284,8 @@ if ($filter) {
 }
 
 $sql .= " LIMIT ? OFFSET ?";
-$params[] = $movies_per_page;
-$params[] = $offset;
+$params[] = $movies_per_page; 
+$params[] = $offset; 
 $types .= "ii"; 
 
 $stmt = $conn->prepare($sql);
@@ -233,15 +297,23 @@ $total_sql = "
     SELECT COUNT(*) as total 
     FROM movies
     LEFT JOIN categories ON movies.Category_id = categories.id_category
-    WHERE (movies.visibility = 1 OR movies.user_id = ?)
+    WHERE (movies.visibility = 1
 ";
 
-$total_params = [$_SESSION['user_id']];
-$total_types = "i";
+$total_params = []; 
+$total_types = "";
+
+if (isset($_SESSION['user_id'])) {
+    $total_sql .= " OR movies.user_id = ?";
+    $total_params[] = $_SESSION['user_id'];
+    $total_types .= "i";
+}
+
+$total_sql .= ")";
 
 if ($search_title) {
     $total_sql .= " AND movies.Title LIKE ?";
-    $total_params[] = $search_title;
+    $total_params[] = '%' . $search_title . '%'; 
     $total_types .= "s";
 }
 
@@ -250,14 +322,18 @@ if ($search_category) {
     $total_params[] = $search_category;
     $total_types .= "s";
 }
+
 $total_stmt = $conn->prepare($total_sql);
-$total_stmt->bind_param($total_types, ...$total_params);
+if (!empty($total_params)) {
+    $total_stmt->bind_param($total_types, ...$total_params);
+}
+
 $total_stmt->execute();
 $total_result = $total_stmt->get_result();
 $total_row = $total_result->fetch_assoc();
+
 $total_movies = $total_row['total'];
 $total_pages = ceil($total_movies / $movies_per_page);
-
 
 $userData = null;
 if (isset($_SESSION['user_id'])) {
@@ -289,27 +365,50 @@ if (isset($_SESSION['user_id'])) {
         $(document).ready(function() {
             
             $('.toggle_favourite').click(function() {
-                var button = $(this);
-                var movieId = button.data('movie-id');
+    var button = $(this);
+    var movieId = button.data('movie-id');
 
-                $.ajax({
-                    url: 'movies.php',
-                    type: 'POST',
-                    data: { movie_id: movieId ,action: 'like' },
-                    success: function(response) {
-                        var data = JSON.parse(response);
-                        if (data.success) {
-                            button.text(data.liked ? 'Remove from Favourite' : 'Add to Favourite');
-                            $('.recent_likes_count').text(data.recent_likes_count);
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    },
-                    error: function() {
-                        alert('An error occurred while processing your request.');
+    $.ajax({
+        url: 'movies.php',
+        type: 'POST',
+        data: { 
+            movie_id: movieId,
+            action: 'like' 
+        },
+        success: function(response) {
+            var data = JSON.parse(response);
+
+            if (data.success) {
+                // Update the button text after success
+                button.text(data.liked ? 'Remove from Favourite' : 'Add to Favourite');
+
+                // Update cookies if needed (if logged out user)
+                if (data.logged_in === false) {
+                    var favourites = JSON.parse(localStorage.getItem('favourites')) || [];
+                    
+                    if (data.liked) {
+                        favourites.push({ item_id: movieId, item_type: 'movie' });
+                    } else {
+                        favourites = favourites.filter(function(fav) {
+                            return !(fav.item_id === movieId && fav.item_type === 'movie');
+                        });
                     }
-                });
-            });
+                    localStorage.setItem('favourites', JSON.stringify(favourites)); // Save to localStorage
+                }
+
+                // Update recent likes count if necessary
+                $('.recent_likes_count').text(data.recent_likes_count);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        },
+        error: function() {
+            alert('An error occurred while processing your request.');
+        }
+    });
+});
+
+
             $('.delete_movie_from_db').click(function() {
                 var button = $(this);
                 var movieId = button.data('movie-id');
@@ -463,6 +562,11 @@ if (isset($_SESSION['user_id'])) {
                     $fileNameDisplayMovie.text("");
                 }
             }
+            var isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
+
+            if (!isLoggedIn) {
+                $('.star-rating span').css('pointer-events', 'none'); 
+            }
         });
     </script>
 </head>
@@ -494,11 +598,60 @@ if (isset($_SESSION['user_id'])) {
                 <?php else: ?>
                     <a href="login.php" class="login links_navigation link_log">Login <i class="fa-solid fa-arrow-right-to-bracket "></i></a>
                 <?php endif; ?>
-                <a class="links_navigation link_log like_log" href="favourite.php"><i class="fa-regular fa-heart icon_size"></i><p class="recent_likes_count"><?php echo count($_SESSION['recent_likes'])?></p></a>
+                <a class="links_navigation link_log like_log" href="favourite.php">
+                    <i class="fa-regular fa-heart icon_size"></i>
+                    <p class="recent_likes_count">
+                        <?php
+                            $likes_count = 0;
+
+                            // Check if the user is logged in
+                            if (isset($_SESSION['user_id'])) {
+                                // Add session likes count
+                                $likes_count += count($_SESSION['recent_likes']);
+
+                                // Add cookie likes count (if any)
+                                if (isset($_COOKIE['favourites'])) {
+                                    $favourites = json_decode($_COOKIE['favourites'], true);
+                                    $likes_count += count($favourites);
+                                }
+                            } else {
+                                // If not logged in, count only the cookie likes
+                                if (isset($_COOKIE['favourites'])) {
+                                    $favourites = json_decode($_COOKIE['favourites'], true);
+                                    $likes_count = count($favourites);
+                                }
+                            }
+
+                            echo $likes_count; // Display the total number of likes
+                        ?>
+                    </p>
+                </a>
 
                 <a class="links_navigation link_log" href="index.php"><i class="fas fa-home icon_size"></i></a>
             </nav>
-            <a class="links_navigation favourite_small_screens like_log" href="favourite.php"><i class="fa-regular fa-heart icon_margin favourite_icon"></i><p class="recent_likes_count"><?php echo count($_SESSION['recent_likes'])?></p></a>
+            <a class="links_navigation favourite_small_screens like_log" href="favourite.php"><i class="fa-regular fa-heart icon_margin favourite_icon"></i><p class="recent_likes_count"> <?php
+                            $likes_count = 0;
+
+                            // Check if the user is logged in
+                            if (isset($_SESSION['user_id'])) {
+                                // Add session likes count
+                                $likes_count += count($_SESSION['recent_likes']);
+
+                                // Add cookie likes count (if any)
+                                if (isset($_COOKIE['favourites'])) {
+                                    $favourites = json_decode($_COOKIE['favourites'], true);
+                                    $likes_count += count($favourites);
+                                }
+                            } else {
+                                // If not logged in, count only the cookie likes
+                                if (isset($_COOKIE['favourites'])) {
+                                    $favourites = json_decode($_COOKIE['favourites'], true);
+                                    $likes_count = count($favourites);
+                                }
+                            }
+
+                            echo $likes_count; // Display the total number of likes
+                        ?></p></a>
                     
         </div>
 
@@ -543,15 +696,16 @@ if (isset($_SESSION['user_id'])) {
                 <h3>Create New Movie</h3>
                 <form method="POST" action="movies.php" enctype="multipart/form-data">
                     <input type="hidden" name="action" value="add_movie">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
 
                     <div class="form-group">
                         <label for="title">Title:</label>
-                        <input type="text" name="title" required>
+                        <input type="text" name="title" required maxlength="100">
                     </div>
 
                     <div class="form-group">
                         <label for="description">Description:</label>
-                        <textarea name="description" required></textarea>
+                        <textarea name="description" required maxlength="500"></textarea>
                     </div>
 
                     <div class="form-group">
@@ -559,8 +713,8 @@ if (isset($_SESSION['user_id'])) {
                         <select name="category" required>
                             <option value="">Select a category</option>
                             <?php foreach ($categories as $category): ?>
-                                <option value="<?php echo htmlspecialchars($category['Name']); ?>">
-                                    <?php echo htmlspecialchars($category['Name']); ?>
+                                <option value="<?php echo htmlspecialchars($category['Name'], ENT_QUOTES, 'UTF-8'); ?>">
+                                    <?php echo htmlspecialchars($category['Name'], ENT_QUOTES, 'UTF-8'); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -581,6 +735,7 @@ if (isset($_SESSION['user_id'])) {
             </div>
         </div>
     </div>
+
 
     <div class="min_height_div">
         <div class="filter-section">
@@ -618,7 +773,9 @@ if (isset($_SESSION['user_id'])) {
                 </div>
             </form>
 
-            <button class="add-movie-icon btn add_movie" style="min-width:120px;" id="addMovieBtn"> Add Movie</button>
+            <?php if (isset($_SESSION['user_id'])): ?>
+                <button class="add-movie-icon btn add_movie" style="min-width:120px;" id="addMovieBtn"> Add Movie</button>
+            <?php endif ?>
 
         </div>
         <?php if (isset($_GET['search_title']) || (isset($_GET['search_category']) && $_GET['search_category'] !== '') || isset($_GET['filter'])): ?>
@@ -658,55 +815,94 @@ if (isset($_SESSION['user_id'])) {
             </div>
         <?php endif; ?>
         <ul class="movie-gallery">
-            <?php while ($movie = $result->fetch_assoc()): ?>
-                <li class="movie-item">
-                    <div class="movie-image-container">
-                        <?php if (!empty($movie['image_link'])): ?>
-                            <img class="movie-image" src="<?php echo htmlspecialchars($movie['image_link']); ?>" alt="Movie Image">
-                        <?php endif; ?>
-                        <div class="movie-overlay">
-                            <strong style="font-size:1.3rem;margin-bottom:5px;"><?php echo htmlspecialchars($movie['Title']); ?></strong>
-                            <p style="margin-bottom:auto;font-size:1rem;"><?php echo htmlspecialchars($movie['Description']); ?></p>
-                            <div class="movie-actions">
-                                <button class="toggle_favourite" data-movie-id="<?php echo $movie['id_movies']; ?>">
-                                    <?php 
+    <?php while ($movie = $result->fetch_assoc()): ?>
+        <li class="movie-item">
+            <div class="movie-image-container">
+                <?php if (!empty($movie['image_link'])): ?>
+                    <img class="movie-image" src="<?php echo htmlspecialchars($movie['image_link']); ?>" alt="Movie Image">
+                <?php endif; ?>
+                <div class="movie-overlay">
+                    <strong style="font-size:1.3rem;margin-bottom:5px;"><?php echo htmlspecialchars($movie['Title']); ?></strong>
+                    <p style="margin-bottom:auto;font-size:1rem;"><?php echo htmlspecialchars($movie['Description']); ?></p>
+                    <div class="movie-actions">
+                        <!-- Favourite Button -->
+                        <button class="toggle_favourite" data-movie-id="<?php echo $movie['id_movies']; ?>">
+                                <?php
+                                    if (isset($_SESSION['user_id'])) {
+                                        $user_id = $_SESSION['user_id'];
+
+                                        // Check the database for the favourite status
                                         $check_like_sql = "SELECT * FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?";
                                         $check_stmt = $conn->prepare($check_like_sql);
-                                        $item_type = "movie";
-                                        $check_stmt->bind_param('iis', $_SESSION['user_id'], $movie['id_movies'], $item_type);
+                                        $item_type = 'movie';
+                                        $check_stmt->bind_param('iis', $user_id, $movie['id_movies'], $item_type);
                                         $check_stmt->execute();
                                         $check_result = $check_stmt->get_result();
                                         echo ($check_result->num_rows > 0) ? 'Remove from Favourite' : 'Add to Favourite';
                                         $check_stmt->close();
-                                    ?>
-                                </button>
-                                <button class="delete_movie_from_db" data-movie-id="<?php echo $movie['id_movies']; ?>">Delete</button>
-                                <div class="star-rating" data-item-id="<?php echo $movie['id_movies']; ?>" data-item-type="movie">
-                                    <?php 
-                                        $rating = isset($movie['average_rating']) ? $movie['average_rating'] : 0;
-                                        $fullStars = floor($rating);
-                                        $halfStar = ($rating - $fullStars >= 0.5);
-                                        for ($i = 1; $i <= 5; $i++) {
-                                            if ($i <= $fullStars) {
-                                                echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                                            } elseif ($i == $fullStars + 1 && $halfStar) {
-                                                echo '<span class="bi bi-star-half star-half" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                                            } else {
-                                                echo '<span class="bi bi-star empty-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                                            }
-                                        }
-                                    ?>
-                                </div>
-                                <p class="rating-value" data-item-id="<?php echo $movie['id_movies']; ?>" data-item-type="movie">
-                                    Average Rating: <?php echo number_format($movie['average_rating'], 2); ?>
-                                </p>
-                            </div>
-                        </div>
+                                    } else {
+                                        // For logged-out users, check cookies
+                                        if (isset($_COOKIE['favourites'])) {
+                                            $favourites = json_decode($_COOKIE['favourites'], true);
+                                            $is_liked = false;
 
+                                            // Loop through the favourites array
+                                            foreach ($favourites as $favourite) {
+                                                // Check if the movie is in the favourites list (note: compare as string)
+                                                if (isset($favourite['item_id']) && (string)$favourite['item_id'] === (string)$movie['id_movies'] && $favourite['item_type'] === 'movie') {
+                                                    $is_liked = true; // Movie is marked as liked
+                                                    break;
+                                                }
+                                            }
+
+                                            // Display the button text accordingly
+                                            echo $is_liked ? 'Remove from Favourite' : 'Add to Favourite';
+                                        } else {
+                                            // No favourites in cookies, so show 'Add to Favourite'
+                                            echo 'Add to Favourite';
+                                        }
+                                    }
+                                ?>
+                            </button>
+
+
+
+                        <!-- Conditionally display the 'Delete' button only for logged-in users -->
+                        <?php if (isset($_SESSION['user_id'])): ?>
+                            <button class="delete_movie_from_db" data-movie-id="<?php echo $movie['id_movies']; ?>">Delete</button>
+                        <?php endif; ?>
+
+                        <!-- Rating Stars (Display but not clickable for non-logged-in users) -->
+                        <div class="star-rating" data-item-id="<?php echo $movie['id_movies']; ?>" data-item-type="movie">
+                            <?php
+                                $rating = isset($movie['average_rating']) ? $movie['average_rating'] : 0;
+                                $fullStars = floor($rating);
+                                $halfStar = ($rating - $fullStars >= 0.5);
+                                for ($i = 1; $i <= 5; $i++) {
+                                    if ($i <= $fullStars) {
+                                        echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                                    } elseif ($i == $fullStars + 1 && $halfStar) {
+                                        echo '<span class="bi bi-star-half star-half" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                                    } else {
+                                        echo '<span class="bi bi-star empty-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                                    }
+                                }
+                            ?>
+                        </div>
+                        <!-- Display average rating value -->
+                        <p class="rating-value" data-item-id="<?php echo $movie['id_movies']; ?>" data-item-type="movie">
+                            Average Rating: <?php echo number_format($movie['average_rating'], 2); ?>
+                        </p>
                     </div>
-                </li>
-            <?php endwhile; ?>
-        </ul>
+                </div>
+            </div>
+        </li>
+    <?php endwhile; ?>
+</ul>
+
+
+
+
         <div class="pagination-container">
             <?php if ($total_pages > 1): ?>
                 <?php if ($current_page > 1): ?>

@@ -30,9 +30,12 @@ $stmt = $conn->prepare($sql);
 $stmt->bind_param('i', $_SESSION['user_id']);
 $stmt->execute();
 $result = $stmt->get_result();
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_goal') {
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die("Invalid CSRF token");
+    }
     $goalText = trim($_POST['goal_text']);
+    $goalText = htmlspecialchars($goalText, ENT_QUOTES, 'UTF-8'); 
 
     if (!empty($goalText)) {
         $sql = "INSERT INTO goals (user_id, text, is_completed, visibility) VALUES (?, ?, 0, 0)";
@@ -40,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $stmt->bind_param('is', $_SESSION['user_id'], $goalText);
 
         if ($stmt->execute()) {
+            $filter = isset($_GET['filter']) ? htmlspecialchars($_GET['filter'], ENT_QUOTES, 'UTF-8') : '';
             header("Location: goals.php?filter=" . $filter);
             exit();
         } else {
@@ -47,8 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
         $stmt->close();
     } else {
-        echo "<p>Please enter a goal.</p>";
+        echo "<p>Please enter a valid goal.</p>";
     }
+}
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_goals') {
@@ -237,10 +244,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
             <form method="POST" action="goals.php" class="goals-form">
                 <input type="hidden" name="action" value="add_goal">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                 <label for="goal_text">New Goal:</label>
-                <input type="text" name="goal_text" required>
+                <input type="text" name="goal_text" maxlength="255" required>
                 <button type="submit" class="btn">Add Goal</button>
             </form>
+
             <div class="goals-header">
                 <h3>Goals: 
                     <?php 

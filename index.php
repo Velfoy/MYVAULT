@@ -58,11 +58,55 @@ if (isset($_SESSION['user_id'])) {
                 <?php else: ?>
                     <a href="login.php" class="login links_navigation link_log">Login <i class="fa-solid fa-arrow-right-to-bracket "></i></a>
                 <?php endif; ?>
-                <a class="links_navigation link_log like_log" href="favourite.php"><i class="fa-regular fa-heart icon_size"></i><p class="recent_likes_count"><?php echo count($_SESSION['recent_likes'])?></p></a>
+                <a class="links_navigation link_log like_log" href="favourite.php"><i class="fa-regular fa-heart icon_size"></i><p class="recent_likes_count"><?php
+                            $likes_count = 0;
+
+                            // Check if the user is logged in
+                            if (isset($_SESSION['user_id'])) {
+                                // Add session likes count
+                                $likes_count += count($_SESSION['recent_likes']);
+
+                                // Add cookie likes count (if any)
+                                if (isset($_COOKIE['favourites'])) {
+                                    $favourites = json_decode($_COOKIE['favourites'], true);
+                                    $likes_count += count($favourites);
+                                }
+                            } else {
+                                // If not logged in, count only the cookie likes
+                                if (isset($_COOKIE['favourites'])) {
+                                    $favourites = json_decode($_COOKIE['favourites'], true);
+                                    $likes_count = count($favourites);
+                                }
+                            }
+
+                            echo $likes_count; // Display the total number of likes
+                        ?></p></a>
 
                 <a class="links_navigation link_log" href="index.php"><i class="fas fa-home icon_size"></i></a>
             </nav>
-            <a class="links_navigation favourite_small_screens like_log" href="favourite.php"><i class="fa-regular fa-heart icon_margin favourite_icon"></i><p class="recent_likes_count"><?php echo count($_SESSION['recent_likes'])?></p></a>
+            <a class="links_navigation favourite_small_screens like_log" href="favourite.php"><i class="fa-regular fa-heart icon_margin favourite_icon"></i><p class="recent_likes_count"><?php
+                            $likes_count = 0;
+
+                            // Check if the user is logged in
+                            if (isset($_SESSION['user_id'])) {
+                                // Add session likes count
+                                $likes_count += count($_SESSION['recent_likes']);
+
+                                // Add cookie likes count (if any)
+                                if (isset($_COOKIE['favourites'])) {
+                                    $favourites = json_decode($_COOKIE['favourites'], true);
+                                    $likes_count += count($favourites);
+                                }
+                            } else {
+                                // If not logged in, count only the cookie likes
+                                if (isset($_COOKIE['favourites'])) {
+                                    $favourites = json_decode($_COOKIE['favourites'], true);
+                                    $likes_count = count($favourites);
+                                }
+                            }
+
+                            echo $likes_count; // Display the total number of likes
+                        ?></p></a>
                     
         </div>
 

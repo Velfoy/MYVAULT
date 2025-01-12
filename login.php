@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $stmt->bind_param('sssss', $first_name, $last_name, $username, $email, $hashed_password);
 
                 if ($stmt->execute()) {
-                    echo "Registration successful! You can now <a href='login.php'>login</a>.";
+                    // echo "Registration successful! You can now <a href='login.php'>login</a>.";
                 } else {
                     $error_message = "Error: " . $stmt->error;
                 }
@@ -220,7 +220,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <i class="icon fa-regular fa-user"></i>
                         </div>
                         <div class="input-box">
-                            <input type="text" class="input-field" name="email" placeholder="Email" required>
+                            <input type="email" class="input-field" name="email" placeholder="Email" required>
                             <i class="icon fa-regular fa-envelope"></i>
                         </div>
                         <div class="input-box">
