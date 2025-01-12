@@ -2,7 +2,6 @@
 session_start();
 include 'includes/functions.php';
 include 'includes/db.php';
-//check_login();
 
 $sql_recipes = "SELECT item_id FROM likes WHERE user_id = ? AND item_type=?";
 $stmt_recipes = $conn->prepare($sql_recipes);
@@ -130,29 +129,27 @@ if (!empty($movie_ids)) {
 if (isset($_POST['action']) && $_POST['action'] == 'delete_from_cookie') {
     $item_id = $_POST['item_id'];
     $item_type = $_POST['item_type'];
-
-    // Fetch existing favorites from cookies
     $favorite_items_cookie = isset($_COOKIE['favourites']) ? json_decode($_COOKIE['favourites'], true) : [];
-
-    // Check if the favorite exists and remove it
     if ($favorite_items_cookie) {
         foreach ($favorite_items_cookie as $key => $item) {
             if ($item['item_id'] == $item_id && $item['item_type'] == $item_type) {
-                unset($favorite_items_cookie[$key]); // Remove item from cookie array
-                break; // Exit loop once item is found and removed
+                unset($favorite_items_cookie[$key]); 
+                break; 
             }
         }
-
-        // Re-index the array to avoid potential issues with keys after unsetting
         $favorite_items_cookie = array_values($favorite_items_cookie);
-
-        // Resave the updated list to the cookie with a 30-day expiration
         setcookie('favourites', json_encode($favorite_items_cookie), time() + (86400 * 30), '/'); // Cookie expires after 30 days
-
-        // Respond with success and updated recent likes count
+        $recent_likes_count = 0;
+        if (isset($_SESSION['recent_likes'])) {
+            $recent_likes_count += count($_SESSION['recent_likes']);
+        }
+        if (isset($_COOKIE['favourites'])) {
+            $favourites = json_decode($_COOKIE['favourites'], true);
+            $recent_likes_count += count($favourites);
+        }
         $response = [
             'success' => true,
-            'recent_likes_count' => count($favorite_items_cookie)  // Return the count of remaining items
+            'recent_likes_count' => $recent_likes_count-1
         ];
         echo json_encode($response);
     } else {
@@ -160,12 +157,10 @@ if (isset($_POST['action']) && $_POST['action'] == 'delete_from_cookie') {
     }
     exit;
 }
-
 if (isset($_POST['item_id']) && isset($_POST['item_type'])) {
     $item_id = intval($_POST['item_id']);
     $item_type = $_POST['item_type'];
     $user_id = $_SESSION['user_id'];
-
     $check_like_sql = "SELECT * FROM likes WHERE user_id = ? AND item_id = ? AND item_type = ?";
     $check_stmt = $conn->prepare($check_like_sql);
     $check_stmt->bind_param('iis', $user_id, $item_id, $item_type);
@@ -181,21 +176,41 @@ if (isset($_POST['item_id']) && isset($_POST['item_type'])) {
                 return !($like['item_id'] == $item_id && $like['item_type'] == $item_type);
             });
             $_SESSION['recent_likes'] = array_values($_SESSION['recent_likes']);
+
+            if (isset($_COOKIE['favourites'])) {
+                $favourites = json_decode($_COOKIE['favourites'], true);
+                $favourites = array_filter($favourites, function($favourite) use ($item_id, $item_type) {
+                    return !($favourite['item_id'] == $item_id && $favourite['item_type'] == $item_type);
+                });
+                setcookie('favourites', json_encode($favourites), time() + 3600, '/');
+            }
+            $recent_likes_count = 0;
+            if (isset($_SESSION['recent_likes'])) {
+                $recent_likes_count += count($_SESSION['recent_likes']);
+            }
+
+            if (isset($_COOKIE['favourites'])) {
+                $favourites = json_decode($_COOKIE['favourites'], true);
+                $recent_likes_count += count($favourites);
+            }
+
             $response = [
                 'success' => true,
-                'recent_likes_count' => count($_SESSION['recent_likes'])
+                'recent_likes_count' => $recent_likes_count
             ];
         } else {
-            $response = ['success' => false, 'error' => 'Could not delete item.'];
+            $response = ['success' => false, 'error' => 'Could not delete item from likes.'];
         }
         $delete_stmt->close();
     } else {
         $response = ['success' => false, 'error' => 'Item not found in likes.'];
     }
     $check_stmt->close();
+
     echo json_encode($response);
-    exit; 
+    exit;
 }
+
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     $item_type = $_POST['action']; 
@@ -284,34 +299,33 @@ if (isset($_SESSION['user_id'])) {
     <script>
         $(document).ready(function(){
         $('.like_delete_item_cookie').click(function() {
-    var button = $(this);
-    var itemId = button.data('item-id');
-    var itemType = button.data('item-type');
+            var button = $(this);
+            var itemId = button.data('item-id');
+            var itemType = button.data('item-type');
 
-    $.ajax({
-        url: 'favourite.php', // The PHP file to handle cookie deletion
-        type: 'POST',
-        data: {
-            action: 'delete_from_cookie',
-            item_id: itemId,
-            item_type: itemType
-        },
-        success: function(response) {
-            var data = JSON.parse(response);
-            if (data.success) {
-                // Update the count on the page and hide the deleted item
-                $('.recent_likes_count').text(data.recent_likes_count);
-                $('#recent_likes_count').text(data.recent_likes_count);
-                button.closest('li').fadeOut(); // Hide the deleted item from the list
-            } else {
-                alert('Error: ' + data.error); // In case something goes wrong
-            }
-        },
-        error: function() {
-            alert('An error occurred while processing your request.');
-        }
-    });
-});
+            $.ajax({
+                url: 'favourite.php', 
+                type: 'POST',
+                data: {
+                    action: 'delete_from_cookie',
+                    item_id: itemId,
+                    item_type: itemType
+                },
+                success: function(response) {
+                    var data = JSON.parse(response);
+                    if (data.success) {
+                        $('.recent_likes_count').text(data.recent_likes_count);
+                        $('#recent_likes_count').text(data.recent_likes_count);
+                        button.closest('li').fadeOut();
+                    } else {
+                        alert('Error: ' + data.error); 
+                    }
+                },
+                error: function() {
+                    alert('An error occurred while processing your request.');
+                }
+            });
+        });
 
 
 
@@ -439,55 +453,51 @@ if (isset($_SESSION['user_id'])) {
             <?php else: ?>
                 <a href="login.php" class="login links_navigation link_log">Login <i class="fa-solid fa-arrow-right-to-bracket "></i></a>
             <?php endif; ?>
-            <a class="links_navigation link_log like_log" href="favourite.php"><i class="fa-regular fa-heart icon_size"></i><p class="recent_likes_count"> <?php
-                            $likes_count = 0;
-
-                            // Check if the user is logged in
-                            if (isset($_SESSION['user_id'])) {
-                                // Add session likes count
-                                $likes_count += count($_SESSION['recent_likes']);
-
-                                // Add cookie likes count (if any)
-                                if (isset($_COOKIE['favourites'])) {
-                                    $favourites = json_decode($_COOKIE['favourites'], true);
-                                    $likes_count += count($favourites);
-                                }
-                            } else {
-                                // If not logged in, count only the cookie likes
-                                if (isset($_COOKIE['favourites'])) {
-                                    $favourites = json_decode($_COOKIE['favourites'], true);
-                                    $likes_count = count($favourites);
-                                }
+            <a class="links_navigation link_log like_log" href="favourite.php"><i class="fa-regular fa-heart icon_size"></i>
+                <p class="recent_likes_count"> 
+                    <?php
+                        $likes_count = 0;
+                        if (isset($_SESSION['user_id'])) {
+                            $likes_count += count($_SESSION['recent_likes']);
+                            if (isset($_COOKIE['favourites'])) {
+                                $favourites = json_decode($_COOKIE['favourites'], true);
+                                $likes_count += count($favourites);
                             }
+                        } else {
+                            if (isset($_COOKIE['favourites'])) {
+                                $favourites = json_decode($_COOKIE['favourites'], true);
+                                $likes_count = count($favourites);
+                            }
+                        }
 
-                            echo $likes_count; // Display the total number of likes
-                        ?></p></a>
+                        echo $likes_count; 
+                    ?>
+                </p>
+            </a>
 
             <a class="links_navigation link_log" href="index.php"><i class="fas fa-home icon_size"></i></a>
         </nav>
-        <a class="links_navigation favourite_small_screens like_log" href="favourite.php"><i class="fa-regular fa-heart icon_margin favourite_icon"></i><p class="recent_likes_count"> <?php
-                            $likes_count = 0;
+        <a class="links_navigation favourite_small_screens like_log" href="favourite.php"><i class="fa-regular fa-heart icon_margin favourite_icon"></i>
+            <p class="recent_likes_count"> 
+                <?php
+                    $likes_count = 0;
+                    if (isset($_SESSION['user_id'])) {
+                        $likes_count += count($_SESSION['recent_likes']);
+                        if (isset($_COOKIE['favourites'])) {
+                            $favourites = json_decode($_COOKIE['favourites'], true);
+                            $likes_count += count($favourites);
+                        }
+                    } else {
+                        if (isset($_COOKIE['favourites'])) {
+                            $favourites = json_decode($_COOKIE['favourites'], true);
+                            $likes_count = count($favourites);
+                        }
+                    }
 
-                            // Check if the user is logged in
-                            if (isset($_SESSION['user_id'])) {
-                                // Add session likes count
-                                $likes_count += count($_SESSION['recent_likes']);
-
-                                // Add cookie likes count (if any)
-                                if (isset($_COOKIE['favourites'])) {
-                                    $favourites = json_decode($_COOKIE['favourites'], true);
-                                    $likes_count += count($favourites);
-                                }
-                            } else {
-                                // If not logged in, count only the cookie likes
-                                if (isset($_COOKIE['favourites'])) {
-                                    $favourites = json_decode($_COOKIE['favourites'], true);
-                                    $likes_count = count($favourites);
-                                }
-                            }
-
-                            echo $likes_count; // Display the total number of likes
-                        ?></p></a>
+                    echo $likes_count; 
+                ?>
+            </p>
+        </a>
                 
     </div>
 
@@ -526,7 +536,6 @@ if (isset($_SESSION['user_id'])) {
     </nav>
 </header>
 <div class="favorites-container">
-    <!-- Sidebar -->
     <div class="new-sidebar">
         <ul>
             <li>
@@ -534,7 +543,6 @@ if (isset($_SESSION['user_id'])) {
                     <p class="text-margin-sidemenu"><i class="fas fa-heart newsidemneu-icon"></i> Recent Likes</p>
                 </a>
             </li>
-            <!-- Only display other sections if the user is logged in -->
             <?php if (isset($_SESSION['user_id'])): ?>
                 <li>
                     <a href="?section=movies">
@@ -555,312 +563,261 @@ if (isset($_SESSION['user_id'])) {
         </ul>
     </div>
     <div class="content-area">
-    <?php 
-    // Check if the user is logged in by checking the session
-    if (isset($_SESSION['user_id'])) {
-        // The user is logged in, show the requested section (or default to 'recent_likes')
-        $section = $_GET['section'] ?? 'recent_likes'; 
-    } else {
-        // If not logged in, show only the 'recent_likes' section
-        $section = 'recent_likes';
-    }
+        <?php 
+            if (isset($_SESSION['user_id'])) {
+                $section = $_GET['section'] ?? 'recent_likes'; 
+            } else {
+                $section = 'recent_likes';
+            }
+            $default_image = 'assets/fakers/no-image.jpg';
+            if ($section == 'recent_likes') {
+                $favorite_items = [];
+                $favorite_items_cookie = [];
 
-    $default_image = 'assets/fakers/no-image.jpg';
-    if ($section == 'recent_likes') {
-        // First, check if the user is logged in or if we need to retrieve favourites from cookies.
-        $favorite_items = [];
-        $favorite_items_cookie = [];
-    
-        if (isset($_SESSION['user_id'])) {
-            // Fetch favorites from session
-            $favorite_items = $_SESSION['recent_likes'];
-        } 
-        if (isset($_COOKIE['favourites'])) {
-            // Decode stored favourite items in cookie
-            $favorite_items_cookie = json_decode($_COOKIE['favourites'], true);
-        }
-    
-        // Display the favourite items (in this case, movies, books, and recipes)
-        echo '<div class="favorites-section recent-likes-section">
-            <h3>Recent Likes: <span id="recent_likes_count">' . (count($favorite_items) + count($favorite_items_cookie)) . '</span></h3>';
-    
-        if (empty($favorite_items) && empty($favorite_items_cookie)) {
-            echo '<div class="no-items-message">No elements to be displayed</div>';
-        } else {
-            echo '<ul class="recent-likes-list">';
-    
-            // Loop over favourite items from session and display them
-            foreach (array_reverse($favorite_items) as $recent) {
-                $item_id = htmlspecialchars($recent['item_id']);
-                $item_type = htmlspecialchars($recent['item_type']);
-    
-                // Default image for items without an image
-                $default_image = 'assets/fakers/no-image.jpg';
-    
-                // Handle 'movie' item type
-                if ($item_type === 'movie') {
-                    // Fetch movie data
-                    $movie_query = "SELECT * FROM movies WHERE id_movies = ?";
-                    $movie_stmt = $conn->prepare($movie_query);
-                    $movie_stmt->bind_param('i', $item_id);
-                    $movie_stmt->execute();
-                    $movie_result = $movie_stmt->get_result();
-                    $movie = $movie_result->fetch_assoc();
-    
-                    // Movie name and image
-                    $name = $movie ? $movie['Title'] : 'Unknown Movie';
-                    $image = $movie && !empty($movie['image_link']) ? $movie['image_link'] : $default_image;
+                if (isset($_SESSION['user_id'])) {
+                    $favorite_items = $_SESSION['recent_likes'];
+                } 
+                if (isset($_COOKIE['favourites'])) {
+                    $favorite_items_cookie = json_decode($_COOKIE['favourites'], true);
                 }
-    
-                // Handle 'book' item type
-                elseif ($item_type === 'book') {
-                    // Fetch book data
-                    $book_query = "SELECT * FROM books WHERE id = ?";
-                    $book_stmt = $conn->prepare($book_query);
-                    $book_stmt->bind_param('i', $item_id);
-                    $book_stmt->execute();
-                    $book_result = $book_stmt->get_result();
-                    $book = $book_result->fetch_assoc();
-    
-                    // Book name and image
-                    $name = $book ? $book['title'] : 'Unknown Book';
-                    $image = $book && !empty($book['image_link']) ? $book['image_link'] : $default_image;
-                }
-    
-                // Handle 'recipe' item type
-                elseif ($item_type === 'recipe') {
-                    // Fetch recipe data
-                    $recipe_query = "SELECT * FROM recipes WHERE id_recipes = ?";
-                    $recipe_stmt = $conn->prepare($recipe_query);
-                    $recipe_stmt->bind_param('i', $item_id);
-                    $recipe_stmt->execute();
-                    $recipe_result = $recipe_stmt->get_result();
-                    $recipe = $recipe_result->fetch_assoc();
-    
-                    // Recipe name and image
-                    $name = $recipe ? $recipe['title'] : 'Unknown Recipe';
-                    $image = $recipe && !empty($recipe['image_link']) ? $recipe['image_link'] : $default_image;
-                }
-    
-                // Render the favourite item
-                echo '<li class="favorite-item">
+                echo '<div class="favorites-section recent-likes-section">
+                    <h3>Recent Likes: <span id="recent_likes_count">' . (count($favorite_items) + count($favorite_items_cookie)) . '</span></h3>';
+
+                if (empty($favorite_items) && empty($favorite_items_cookie)) {
+                    echo '<div class="no-items-message">No elements to be displayed</div>';
+                } else {
+                    echo '<ul class="recent-likes-list">';
+                    foreach (array_reverse($favorite_items) as $recent) {
+                        $item_id = htmlspecialchars($recent['item_id']);
+                        $item_type = htmlspecialchars($recent['item_type']);
+                        $default_image = 'assets/fakers/no-image.jpg';
+                        if ($item_type === 'movie') {
+                            $movie_query = "SELECT * FROM movies WHERE id_movies = ?";
+                            $movie_stmt = $conn->prepare($movie_query);
+                            $movie_stmt->bind_param('i', $item_id);
+                            $movie_stmt->execute();
+                            $movie_result = $movie_stmt->get_result();
+                            $movie = $movie_result->fetch_assoc();
+                            $name = $movie ? $movie['Title'] : 'Unknown Movie';
+                            $image = $movie && !empty($movie['image_link']) ? $movie['image_link'] : $default_image;
+                        }
+                        elseif ($item_type === 'book') {
+                            $book_query = "SELECT * FROM books WHERE id = ?";
+                            $book_stmt = $conn->prepare($book_query);
+                            $book_stmt->bind_param('i', $item_id);
+                            $book_stmt->execute();
+                            $book_result = $book_stmt->get_result();
+                            $book = $book_result->fetch_assoc();
+                            $name = $book ? $book['title'] : 'Unknown Book';
+                            $image = $book && !empty($book['image_link']) ? $book['image_link'] : $default_image;
+                        }
+                        elseif ($item_type === 'recipe') {
+                            $recipe_query = "SELECT * FROM recipes WHERE id_recipes = ?";
+                            $recipe_stmt = $conn->prepare($recipe_query);
+                            $recipe_stmt->bind_param('i', $item_id);
+                            $recipe_stmt->execute();
+                            $recipe_result = $recipe_stmt->get_result();
+                            $recipe = $recipe_result->fetch_assoc();
+                            $name = $recipe ? $recipe['title'] : 'Unknown Recipe';
+                            $image = $recipe && !empty($recipe['image_link']) ? $recipe['image_link'] : $default_image;
+                        }
+                        echo '<li class="favorite-item">
                         <img src="' . $image . '" alt="' . $name . '" class="item-image">
-                        <div class="item-details"><strong>' . ucfirst($item_type) . ': </strong><p class="item-name">' . $name . '</p></div>
+                        <div class="fffff"><strong>' . ucfirst($item_type) . ': </strong><p class="fffff_name">'. $name .'</p></div>
                         <button class="like_delete_item" data-item-id="' . $item_id . '" data-item-type="' . $item_type . '">
                             <i class="fas fa-trash"></i>
                         </button>
-                    </li>';
-            }
-    
-            // Loop over favourite items from cookies and display them
-            foreach (array_reverse($favorite_items_cookie) as $recent_cookie) {
-                $item_id = htmlspecialchars($recent_cookie['item_id']);
-                $item_type = htmlspecialchars($recent_cookie['item_type']);
-    
-                // Default image for items without an image
-                $default_image = 'assets/fakers/no-image.jpg';
-    
-                // Handle 'movie' item type
-                if ($item_type === 'movie') {
-                    // Fetch movie data
-                    $movie_query = "SELECT * FROM movies WHERE id_movies = ?";
-                    $movie_stmt = $conn->prepare($movie_query);
-                    $movie_stmt->bind_param('i', $item_id);
-                    $movie_stmt->execute();
-                    $movie_result = $movie_stmt->get_result();
-                    $movie = $movie_result->fetch_assoc();
-    
-                    // Movie name and image
-                    $name = $movie ? $movie['Title'] : 'Unknown Movie';
-                    $image = $movie && !empty($movie['image_link']) ? $movie['image_link'] : $default_image;
-                }
-    
-                // Handle 'book' item type
-                elseif ($item_type === 'book') {
-                    // Fetch book data
-                    $book_query = "SELECT * FROM books WHERE id = ?";
-                    $book_stmt = $conn->prepare($book_query);
-                    $book_stmt->bind_param('i', $item_id);
-                    $book_stmt->execute();
-                    $book_result = $book_stmt->get_result();
-                    $book = $book_result->fetch_assoc();
-    
-                    // Book name and image
-                    $name = $book ? $book['title'] : 'Unknown Book';
-                    $image = $book && !empty($book['image_link']) ? $book['image_link'] : $default_image;
-                }
-    
-                // Handle 'recipe' item type
-                elseif ($item_type === 'recipe') {
-                    // Fetch recipe data
-                    $recipe_query = "SELECT * FROM recipes WHERE id_recipes = ?";
-                    $recipe_stmt = $conn->prepare($recipe_query);
-                    $recipe_stmt->bind_param('i', $item_id);
-                    $recipe_stmt->execute();
-                    $recipe_result = $recipe_stmt->get_result();
-                    $recipe = $recipe_result->fetch_assoc();
-    
-                    // Recipe name and image
-                    $name = $recipe ? $recipe['title'] : 'Unknown Recipe';
-                    $image = $recipe && !empty($recipe['image_link']) ? $recipe['image_link'] : $default_image;
-                }
-    
-                // Render the favourite item
-                echo '<li class="favorite-item">
+                        </li>';
+                    }
+                    foreach (array_reverse($favorite_items_cookie) as $recent_cookie) {
+                        $item_id = htmlspecialchars($recent_cookie['item_id']);
+                        $item_type = htmlspecialchars($recent_cookie['item_type']);
+                        $default_image = 'assets/fakers/no-image.jpg';
+                        if ($item_type === 'movie') {
+                            $movie_query = "SELECT * FROM movies WHERE id_movies = ?";
+                            $movie_stmt = $conn->prepare($movie_query);
+                            $movie_stmt->bind_param('i', $item_id);
+                            $movie_stmt->execute();
+                            $movie_result = $movie_stmt->get_result();
+                            $movie = $movie_result->fetch_assoc();
+                            $name = $movie ? $movie['Title'] : 'Unknown Movie';
+                            $image = $movie && !empty($movie['image_link']) ? $movie['image_link'] : $default_image;
+                        }
+                        elseif ($item_type === 'book') {
+                            $book_query = "SELECT * FROM books WHERE id = ?";
+                            $book_stmt = $conn->prepare($book_query);
+                            $book_stmt->bind_param('i', $item_id);
+                            $book_stmt->execute();
+                            $book_result = $book_stmt->get_result();
+                            $book = $book_result->fetch_assoc();
+                            $name = $book ? $book['title'] : 'Unknown Book';
+                            $image = $book && !empty($book['image_link']) ? $book['image_link'] : $default_image;
+                        }
+                        elseif ($item_type === 'recipe') {
+                            $recipe_query = "SELECT * FROM recipes WHERE id_recipes = ?";
+                            $recipe_stmt = $conn->prepare($recipe_query);
+                            $recipe_stmt->bind_param('i', $item_id);
+                            $recipe_stmt->execute();
+                            $recipe_result = $recipe_stmt->get_result();
+                            $recipe = $recipe_result->fetch_assoc();
+                            $name = $recipe ? $recipe['title'] : 'Unknown Recipe';
+                            $image = $recipe && !empty($recipe['image_link']) ? $recipe['image_link'] : $default_image;
+                        }
+
+                        echo '<li class="favorite-item">
                         <img src="' . $image . '" alt="' . $name . '" class="item-image">
-                        <div class="item-details"><strong>' . ucfirst($item_type) . ': </strong><p class="item-name">' . $name . '</p></div>
+                        <div class="fffff"><strong>' . ucfirst($item_type) . ': </strong><p class="fffff_name">'. $name .'</p></div>
                         <button class="like_delete_item_cookie" data-item-id="' . $item_id . '" data-item-type="' . $item_type . '">
-                            <i class="fas fa-trash"></i> 
+                            <i class="fas fa-trash"></i>
                         </button>
-                    </li>';
-            }
-    
-            echo '</ul>';
-        }
-    
-        echo '</div>';
-    }
-     elseif ($section == 'movies' && isset($_SESSION['user_id'])) {
-            echo '<div class="favorites-section movies-section"><h3>Movies</h3>';
-            
-            if (empty($movies)) {
-                echo '<div class="no-items-message">No elements to be displayed</div>';
-            } else {
-                echo '<ul class="item-list movies-list">';
-                foreach ($movies as $movie) {
-                    $image = $movie['image_link'] ?: $default_image;
-                    $rating = isset($movie['average_rating']) && $movie['average_rating'] > 0 ? $movie['average_rating'] : 0;
-                    $fullStars = floor($rating);
-                    $halfStar = ($rating - $fullStars >= 0.5);
-                    $emptyStars = 5 - $fullStars - ($halfStar ? 1 : 0);
-                
-                    echo '<li class="favorite-item">
-                            <img src="' . $image . '" alt="Movie Image" data-item-id="'.$movie['id_movies'].'" class="item-image">
-                            <div class="fffff">
-                                <p class="item-title">' . htmlspecialchars($movie['Title']) . '</p>
-                                <p class="item-category">' . htmlspecialchars($movie['category_name']) . '</p>
-                            </div>
-                            <div class="average-rating">
-                                <div class="star-rating" data-item-id="' . $movie['id_movies'] . '" data-item-type="movie">';
-
-                    for ($i = 1; $i <= $fullStars; $i++) {
-                        echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                    }
-                
-                    if ($halfStar) {
-                        echo '<span class="bi bi-star-half star-half" data-rating="' . ($fullStars + 1) . '" title="Rating: ' . $rating . '"></span>';
-                    }
-                    for ($i = 0; $i < $emptyStars; $i++) {
-                        echo '<span class="bi bi-star empty-star" data-rating="' . ($fullStars + $halfStar + $i + 1) . '" title="Rating: ' . $rating . '"></span>';
-                    }
-                
-                    echo '   </div>
-                            </div>
-                            <button class="like_delete_item" data-item-id="' . $movie['id_movies'] . '" data-item-type="movie">
-                                <i class="fas fa-trash"></i>
-                            </button>
                         </li>';
+                    }
+
+                    echo '</ul>';
                 }
-                
-                echo '</ul>';
-            }
-            echo '</div>';
-        } elseif ($section == 'books' && isset($_SESSION['user_id'])) {
-            echo '<div class="favorites-section books-section"><h3>Books</h3>';
-            
-            if (empty($books)) {
-                echo '<div class="no-items-message">No elements to be displayed</div>';
-            } else {
-                echo '<ul class="item-list books-list">';
-                foreach ($books as $book) {
-                    $image = $book['image_link'] ?: $default_image;
-                    echo '<li class="favorite-item">
-                            <img src="' . $image . '" alt="Book Image" class="item-image">
-                            <div class="fffff">
-                                <p class="item-title">' . htmlspecialchars($book['title']) . '</p>';
+
+                echo '</div>';
+            }elseif ($section == 'movies' && isset($_SESSION['user_id'])) {
+                    echo '<div class="favorites-section movies-section"><h3>Movies</h3>';
                     
-                    if (!empty($book['author'])) {
-                        echo '<p class="item-category">' . htmlspecialchars($book['author']) . '</p>';
-                    }
-                
-                    echo '</div>
-                            <div class="average-rating">
-                                <div class="star-rating" data-item-id="' . $book['id'] . '" data-item-type="book">';
+                    if (empty($movies)) {
+                        echo '<div class="no-items-message">No elements to be displayed</div>';
+                    } else {
+                        echo '<ul class="item-list movies-list">';
+                        foreach ($movies as $movie) {
+                            $image = $movie['image_link'] ?: $default_image;
+                            $rating = isset($movie['average_rating']) && $movie['average_rating'] > 0 ? $movie['average_rating'] : 0;
+                            $fullStars = floor($rating);
+                            $halfStar = ($rating - $fullStars >= 0.5);
+                            $emptyStars = 5 - $fullStars - ($halfStar ? 1 : 0);
+                        
+                            echo '<li class="favorite-item">
+                                    <img src="' . $image . '" alt="Movie Image" data-item-id="'.$movie['id_movies'].'" class="item-image">
+                                    <div class="fffff">
+                                        <p class="item-title">' . htmlspecialchars($movie['Title']) . '</p>
+                                        <p class="item-category">' . htmlspecialchars($movie['category_name']) . '</p>
+                                    </div>
+                                    <div class="average-rating">
+                                        <div class="star-rating" data-item-id="' . $movie['id_movies'] . '" data-item-type="movie">';
 
-                    $rating = isset($book['average_rating']) ? $book['average_rating'] : 0;
-                    $fullStars = floor($rating);
-                    $halfStar = ($rating - $fullStars >= 0.5);
-                    for ($i = 1; $i <= 5; $i++) {
-                        if ($i <= $fullStars) {
-                            echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                        } elseif ($i == $fullStars + 1 && $halfStar) {
-                            echo '<span class="bi bi-star-half star-half" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                        } else {
-                            echo '<span class="bi bi-star empty-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                            for ($i = 1; $i <= $fullStars; $i++) {
+                                echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                            }
+                        
+                            if ($halfStar) {
+                                echo '<span class="bi bi-star-half star-half" data-rating="' . ($fullStars + 1) . '" title="Rating: ' . $rating . '"></span>';
+                            }
+                            for ($i = 0; $i < $emptyStars; $i++) {
+                                echo '<span class="bi bi-star empty-star" data-rating="' . ($fullStars + $halfStar + $i + 1) . '" title="Rating: ' . $rating . '"></span>';
+                            }
+                        
+                            echo '   </div>
+                                    </div>
+                                    <button class="like_delete_item" data-item-id="' . $movie['id_movies'] . '" data-item-type="movie">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </li>';
                         }
+                        
+                        echo '</ul>';
                     }
+                    echo '</div>';
+            } elseif ($section == 'books' && isset($_SESSION['user_id'])) {
+                echo '<div class="favorites-section books-section"><h3>Books</h3>';
                 
-                    echo '</div>
-                            </div>
-                            <button class="like_delete_item" data-item-id="' . $book['id'] . '" data-item-type="book">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </li>';
-                }
-                
-                echo '</ul>';
-            }
-            echo '</div>';
-        } elseif ($section == 'recipes' && isset($_SESSION['user_id'])) {
-            echo '<div class="favorites-section recipes-section"><h3>Recipes</h3>';
-            
-            if (empty($recipes)) {
-                echo '<div class="no-items-message">No elements to be displayed</div>';
-            } else {
-                echo '<ul class="item-list recipes-list">';
-                foreach ($recipes as $recipe) {
-                    $image = $recipe['image_link'] ?: $default_image;
-                
-                    echo '<li class="favorite-item">
-                            <img src="' . $image . '" alt="Recipe Image" class="item-image">
-                            <div class="fffff">
-                                <p class="item-title">' . htmlspecialchars($recipe['title']) . '</p>';
-                
-                    if (!empty($recipe['created_at'])) {
-                        echo '<p class="item-category created_at_item">' . htmlspecialchars($recipe['created_at']) . '</p>';
-                    }
-                
-                    echo '</div>
-                            <div class="average-rating">
-                                <div class="star-rating" data-item-id="' . $recipe['id_recipes'] . '" data-item-type="recipe">';
-                
-                    $rating = isset($recipe['average_rating']) ? $recipe['average_rating'] : 0;
-                
-                    $fullStars = floor($rating);
-                    $halfStar = ($rating - $fullStars >= 0.5);
-                
-                    for ($i = 1; $i <= 5; $i++) {
-                        if ($i <= $fullStars) {
-                            echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                        } elseif ($i == $fullStars + 1 && $halfStar) {
-                            echo '<span class="bi bi-star-half star-half" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
-                        } else {
-                            echo '<span class="bi bi-star empty-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                if (empty($books)) {
+                    echo '<div class="no-items-message">No elements to be displayed</div>';
+                } else {
+                    echo '<ul class="item-list books-list">';
+                    foreach ($books as $book) {
+                        $image = $book['image_link'] ?: $default_image;
+                        echo '<li class="favorite-item">
+                                <img src="' . $image . '" alt="Book Image" class="item-image">
+                                <div class="fffff">
+                                    <p class="item-title">' . htmlspecialchars($book['title']) . '</p>';
+                        
+                        if (!empty($book['author'])) {
+                            echo '<p class="item-category">' . htmlspecialchars($book['author']) . '</p>';
                         }
+                    
+                        echo '</div>
+                                <div class="average-rating">
+                                    <div class="star-rating" data-item-id="' . $book['id'] . '" data-item-type="book">';
+
+                        $rating = isset($book['average_rating']) ? $book['average_rating'] : 0;
+                        $fullStars = floor($rating);
+                        $halfStar = ($rating - $fullStars >= 0.5);
+                        for ($i = 1; $i <= 5; $i++) {
+                            if ($i <= $fullStars) {
+                                echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                            } elseif ($i == $fullStars + 1 && $halfStar) {
+                                echo '<span class="bi bi-star-half star-half" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                            } else {
+                                echo '<span class="bi bi-star empty-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                            }
+                        }
+                    
+                        echo '</div>
+                                </div>
+                                <button class="like_delete_item" data-item-id="' . $book['id'] . '" data-item-type="book">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </li>';
                     }
-                
-                    echo '</div>
-                            </div>
-                            <button class="like_delete_item" data-item-id="' . $recipe['id_recipes'] . '" data-item-type="recipe">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </li>';
+                    
+                    echo '</ul>';
                 }
+                echo '</div>';
+            } elseif ($section == 'recipes' && isset($_SESSION['user_id'])) {
+                echo '<div class="favorites-section recipes-section"><h3>Recipes</h3>';
                 
-                echo '</ul>';
+                if (empty($recipes)) {
+                    echo '<div class="no-items-message">No elements to be displayed</div>';
+                } else {
+                    echo '<ul class="item-list recipes-list">';
+                    foreach ($recipes as $recipe) {
+                        $image = $recipe['image_link'] ?: $default_image;
+                    
+                        echo '<li class="favorite-item">
+                                <img src="' . $image . '" alt="Recipe Image" class="item-image">
+                                <div class="fffff">
+                                    <p class="item-title">' . htmlspecialchars($recipe['title']) . '</p>';
+                    
+                        if (!empty($recipe['created_at'])) {
+                            echo '<p class="item-category created_at_item">' . htmlspecialchars($recipe['created_at']) . '</p>';
+                        }
+                    
+                        echo '</div>
+                                <div class="average-rating">
+                                    <div class="star-rating" data-item-id="' . $recipe['id_recipes'] . '" data-item-type="recipe">';
+                    
+                        $rating = isset($recipe['average_rating']) ? $recipe['average_rating'] : 0;
+                    
+                        $fullStars = floor($rating);
+                        $halfStar = ($rating - $fullStars >= 0.5);
+                    
+                        for ($i = 1; $i <= 5; $i++) {
+                            if ($i <= $fullStars) {
+                                echo '<span class="bi bi-star-fill full-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                            } elseif ($i == $fullStars + 1 && $halfStar) {
+                                echo '<span class="bi bi-star-half star-half" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                            } else {
+                                echo '<span class="bi bi-star empty-star" data-rating="' . $i . '" title="Rating: ' . $rating . '"></span>';
+                            }
+                        }
+                    
+                        echo '</div>
+                                </div>
+                                <button class="like_delete_item" data-item-id="' . $recipe['id_recipes'] . '" data-item-type="recipe">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </li>';
+                    }
+                    
+                    echo '</ul>';
+                }
+                echo '</div>';
             }
-            echo '</div>';
-        }
         ?>
         <div id="image-modal" class="modal-overlay hidden">
             <div class="modal-content">
